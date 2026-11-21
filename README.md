@@ -17,6 +17,7 @@ repo-root/
 │  │  ├─ base-test-design/       # 要件からテストを作る（型）
 │  │  ├─ base-code-review/       # レビューの観点と記録（型）
 │  │  ├─ base-harness-improvement/ # ミスを防ぐ層を決める（型）
+│  │  ├─ base-spec-extraction/   # 既存の設計書から守りたいものを抽出（型）
 │  │  └─ proj-example-billing/   # proj スキルの見本
 │  ├─ hooks/
 │  │  ├─ tazuna-guard.json       # Copilot の hooks 設定
@@ -28,6 +29,7 @@ repo-root/
 ├─ docs/
 │  ├─ requirements/              # 要件・完了条件（REQ-xxx）
 │  ├─ domain/                    # 不変条件・用語集・機能一覧
+│  │  └─ candidates/             # 設計書から抽出した候補（承認前）
 │  ├─ architecture.md
 │  └─ conventions.md
 ├─ scripts/lint/

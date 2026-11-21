@@ -18,6 +18,7 @@
 | --- | --- |
 | 作業の進め方 | `.github/skills/base-task-workflow/` |
 | テストの作り方 | `.github/skills/base-test-design/` |
+| 既存の設計書から業務ルールを抽出 | `.github/skills/base-spec-extraction/` |
 | 業務ルール・用語・機能一覧 | `docs/domain/` |
 | レイヤーと依存方向 | `docs/architecture.md` |
 | 命名・作法 | `docs/conventions.md` |
