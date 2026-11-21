@@ -7,6 +7,9 @@
 # 既定: 案件リーダー
 *                                   @your-org/project-lead
 
+# --- tazuna 本体専用（案件では削除）---
+/_tazuna/                           @your-org/standards-team
+
 # --- 型（標準化チーム）---
 /AGENTS.md                          @your-org/project-lead @your-org/standards-team
 /.github/CODEOWNERS                 @your-org/standards-team

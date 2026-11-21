@@ -34,8 +34,8 @@ if [ -n "$cmd" ] && [ -f "$HOOKS_DIR/deny-commands.txt" ]; then
 fi
 
 # --- 2. 守るべきファイルの編集 ---
-# tazuna 本体（.tazuna-template があるリポジトリ）では型の編集を許可する
-[ -f "$ROOT/.tazuna-template" ] && exit 0
+# tazuna 本体（_tazuna/ があるリポジトリ）では型の編集を許可する
+[ -d "$ROOT/_tazuna" ] && exit 0
 [ -f "$HOOKS_DIR/protected-paths.txt" ] || exit 0
 
 is_write_tool=0

@@ -33,10 +33,10 @@ expect allow "通常のpushは通す"             "$(bash_cmd 'git push origin f
 expect allow "テスト実行は通す"             "$(bash_cmd 'mvn -B verify')"
 expect deny  "toolArgs が文字列でも読める"  '{"toolName":"bash","toolArgs":"{\"command\":\"git push --force\"}"}'
 
-# --- 守るべきファイル（.tazuna-template がない案件リポジトリを想定）---
-if [ -f .tazuna-template ]; then
-  mv .tazuna-template .tazuna-template.bak
-  trap 'mv .tazuna-template.bak .tazuna-template' EXIT
+# --- 守るべきファイル（_tazuna/ がない案件リポジトリを想定）---
+if [ -d _tazuna ]; then
+  mv _tazuna _tazuna.bak
+  trap 'mv _tazuna.bak _tazuna' EXIT
 fi
 expect deny  "base スキルの編集を止める"     "$(edit_path '.github/skills/base-code-review/SKILL.md')"
 expect deny  "不変条件の編集を止める"        "$(edit_path 'docs/domain/invariants.md')"
