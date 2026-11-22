@@ -18,7 +18,7 @@ repo-root/
 │  │  ├─ base-code-review/       # レビューの観点と記録（型）
 │  │  ├─ base-harness-improvement/ # ミスを防ぐ層を決める（型）
 │  │  ├─ base-spec-extraction/   # 既存の設計書から守りたいものを抽出（型）
-│  │  └─ proj-example-billing/   # proj スキルの見本
+│  │  └─ proj-example-reservation/ # proj スキルの見本
 │  ├─ hooks/
 │  │  ├─ tazuna-guard.json       # Copilot の hooks 設定
 │  │  ├─ deny-commands.txt       # 禁止コマンド
@@ -37,7 +37,7 @@ repo-root/
 │  ├─ lib.sh                     # 「内容・理由・修正・参照」を出す共通関数
 │  ├─ common/                    # 汎用チェック（型）
 │  └─ domain/                    # 業務固有チェック（案件で作る）
-├─ src/                          # Java の見本（Money・Invoice・ArchUnit）
+├─ src/                          # Java の見本（ツアー予約・ArchUnit）
 └─ harness/
    ├─ GUIDE.md                   # 運用ガイド（人向け）
    ├─ rule-log.md                # 違反の記録
@@ -66,7 +66,7 @@ git rm -r _tazuna
 | --- | --- | --- |
 | `.github/CODEOWNERS` | `@your-org/...` を実際のチームに置き換える | 案件リーダー |
 | `AGENTS.md` | プロジェクト名とコマンドを書く | 案件リーダー |
-| `pom.xml`、`src/` | groupId・パッケージ名を変える。見本の `Money`・`Invoice` は必要なら残す | 案件リーダー |
+| `pom.xml`、`src/` | groupId・パッケージ名を変える。見本のツアー予約（`Money`・`Tour`・`Reservation` など）は必要なら残す | 案件リーダー |
 | `ArchitectureTest.java` | パッケージ指定を合わせる | 案件リーダー |
 | `docs/requirements/`、`docs/domain/` | 見本を削除し、要件・不変条件・用語・機能一覧を書く | 社員 |
 | `scripts/lint/domain/` | 不変条件ごとにチェックを作る（見本: `java-money-no-float.sh`） | 協力会社 |

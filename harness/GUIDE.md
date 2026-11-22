@@ -8,7 +8,7 @@ tazuna を使った開発で、人が知っておくべきことをまとめる�
 
 | 優先 | 層 | 防ぎ方 | このリポジトリでの例 |
 | --- | --- | --- | --- |
-| 1 | 設計 | 間違えようのない型・API・境界にする | `Money` 型、`Invoice` の遷移メソッド |
+| 1 | 設計 | 間違えようのない型・API・境界にする | `Money` 型、`Reservation` の遷移メソッド |
 | 2 | Lint・型・テスト | 成果物の違反を機械的に検出する | `scripts/lint/`、`ArchitectureTest` |
 | 3 | 実行検証 | 動かして結果を証拠として残す | `mvn verify`、PRの証拠欄 |
 | 4 | 文章 | 判断基準を skills・docs で伝える | `.github/skills/`、`docs/` |

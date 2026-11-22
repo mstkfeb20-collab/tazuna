@@ -78,7 +78,7 @@ repo-root/
 ### skillsの命名
 
 - `base-*`：どの案件でも使う進め方（例：`base-code-review`、`base-test-design`）。
-- `proj-*`：ドメイン特有の進め方（例：`proj-billing-review`）。
+- `proj-*`：ドメイン特有の進め方（例：`proj-reservation-review`）。
 - proj は base と同じことをしない。base を前提にするときは本文で参照する。
 - スキルに業務ルールを直接書かない。`docs/domain/` を参照させる。
 

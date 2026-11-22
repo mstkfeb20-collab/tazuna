@@ -7,26 +7,25 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-@Tag("REQ-001")
-@DisplayName("REQ-001 請求金額は税込・1円単位で計算する")
+@Tag("REQ-003")
+@DisplayName("REQ-003 金額の計算（切り捨て・0円未満にしない）")
 class MoneyTest {
 
     @Test
-    @DisplayName("税込金額の1円未満は切り捨てる")
-    void withTaxRoundsDown() {
-        assertEquals(Money.yen(1_100), Money.yen(1_000).withTax());
-        assertEquals(Money.yen(108), Money.yen(99).withTax());
+    @DisplayName("率を掛けた1円未満は切り捨てる")
+    void percentRoundsDown() {
+        assertEquals(Money.yen(3_333), Money.yen(11_111).percent(30));
     }
 
     @Test
-    @DisplayName("数量を掛けた金額を計算できる")
-    void timesQuantity() {
-        assertEquals(Money.yen(3_000), Money.yen(1_000).times(3));
+    @DisplayName("返金額は0円を下回らない")
+    void refundNeverNegative() {
+        assertEquals(Money.zero(), Money.yen(1_000).minusOrZero(Money.yen(1_500)));
     }
 
     @Test
-    @DisplayName("負の金額は作れない")
-    void rejectsNegative() {
+    @DisplayName("マイナスの金額は作れない")
+    void noNegative() {
         assertThrows(IllegalArgumentException.class, () -> Money.yen(-1));
     }
 }

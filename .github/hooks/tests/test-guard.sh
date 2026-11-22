@@ -43,7 +43,7 @@ expect deny  "不変条件の編集を止める"        "$(edit_path 'docs/domai
 expect deny  "共通Lintの編集を止める"        "$(edit_path 'scripts/lint/common/skill-naming.sh')"
 expect deny  "絶対パスでも止める"            "$(edit_path "$PWD/docs/requirements/README.md")"
 expect deny  "シェル経由の書き換えも止める"   "$(bash_cmd 'sed -i s/a/b/ docs/domain/invariants.md')"
-expect allow "proj スキルは編集できる"       "$(edit_path '.github/skills/proj-example-billing/SKILL.md')"
+expect allow "proj スキルは編集できる"       "$(edit_path '.github/skills/proj-example-reservation/SKILL.md')"
 expect allow "業務固有Lintは編集できる"      "$(edit_path 'scripts/lint/domain/java-money-no-float.sh')"
 expect allow "プロダクトコードは編集できる"   "$(edit_path 'src/main/java/com/example/domain/Money.java')"
 expect allow "保護ファイルの閲覧は通す"      "$(bash_cmd 'cat docs/domain/invariants.md')"

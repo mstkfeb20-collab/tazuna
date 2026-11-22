@@ -18,8 +18,8 @@ description: 要件（REQ-xxx）からテストを作るときに使う。実装
 4. テストクラスに要件IDを付ける。
 
 ```java
-@Tag("REQ-001")
-@DisplayName("REQ-001 請求金額は税込・1円単位で計算する")
+@Tag("REQ-003")
+@DisplayName("REQ-003 取消料は1円未満を切り捨てる")
 class MoneyTest { ... }
 ```
 

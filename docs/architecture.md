@@ -6,9 +6,9 @@
 
 | レイヤー | パッケージ | 置くもの |
 | --- | --- | --- |
-| domain | `com.example.domain` | 業務ルール、値オブジェクト（`Money`）、エンティティ（`Invoice`）、リポジトリの interface |
-| application | `com.example.application` | ユースケース（`InvoiceService`） |
-| infrastructure | `com.example.infrastructure` | DB・外部APIなど入出力の実装 |
+| domain | `com.example.domain` | 業務ルール、値オブジェクト（`Money`）、エンティティ（`Tour`・`Reservation`）、業務ルール（`CancellationPolicy`）、リポジトリの interface |
+| application | `com.example.application` | ユースケース（`ReservationService`） |
+| infrastructure | `com.example.infrastructure` | DB・外部APIなど入出力の実装（見本はインメモリ） |
 
 domain は入出力（`java.sql`、`java.io`、`java.net`）に依存しない（ARCH-002）。
 
