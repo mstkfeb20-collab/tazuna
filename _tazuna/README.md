@@ -7,7 +7,7 @@
 | [guide.md](guide.md) | 新規プロジェクト向け ハーネス導入指南書（考え方・役割分担・立ち上げ手順・運用） |
 | [id-design/ID設計項目の振り分け表.xlsx](id-design/) | ID（内部設計）相当の設計項目198件と、各項目を「機械（設計・Lint・テスト・hooks）／AIへの条件／人のための設計／知識」に振り分けた表（叩き台・レビュー中）。「例」列はツアー予約の評価セットから取っている |
 | [id-design/build.py](id-design/build.py) | 振り分け表を作り直すスクリプト（`python3 _tazuna/id-design/build.py`） |
-| [id-design/eval/](id-design/eval/) | 振り分けの評価セット。ツアー予約の ID 設計（9ファイル・222行）と、行ごとの正しい振り分け先 |
+| [id-design/eval/](id-design/eval/) | 振り分けの評価セット。ツアー予約の ID 設計（24ファイル・506行。予約登録と振込取込は書類ごとに詳細化）と、行ごとの正しい振り分け先 |
 
 ### 振り分け表の使い方
 

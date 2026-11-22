@@ -15,16 +15,22 @@ from collections import Counter, defaultdict
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(HERE))
 import build  # noqa: E402  振り分け表の項目と map_item
-from source import FILES, L  # noqa: E402
+from source import DETAILED, FILES, L  # noqa: E402
 
 items = {x["item"]: x for x in build.I}
 errors = []
+
+def feature_of(f):
+    return f.split("/")[0]
+
+RAW = list(L)  # 中見出しを含む、書いた順
+L = [x for x in RAW if x[1] is not None]
 
 for f, item, text, over in L:
     for k, v in over.items():
         if k in items.get(item, {}) and items[item][k] == v:
             errors.append(f"既定と同じ上書き（{k}={v}）: {text}")
-    if f not in FILES:
+    if f not in FILES and feature_of(f) not in DETAILED:
         errors.append(f"未定義のファイル {f}: {text}")
     if item not in items:
         errors.append(f"振り分け表にない設計項目「{item}」: {text}")
@@ -48,40 +54,60 @@ if errors:
     print("\n".join(errors))
     sys.exit(1)
 
-# ---- 行IDを振る（ファイルごとの連番）
-by_file = defaultdict(list)
-for f, item, text, over in L:
-    by_file[f].append((item, text, over))
-
-order = list(FILES)
+# ---- 行IDを振る
+# 観点でまとめるファイル（common と詳細化していない機能）: D-RV01-001 のようにファイル内の連番
+# 書類ごとに分けた機能: D-RV02-301 のように 書類番号 + 2桁の連番。中見出しは書いた順に出す
+ALL = RAW
+order = sorted(dict.fromkeys(x[0] for x in ALL))
+view_order = list(dict.fromkeys(x["view"] for x in build.I))
 rows = []
-os.makedirs(os.path.join(HERE, "design"), exist_ok=True)
+design_dir = os.path.join(HERE, "design")
+import shutil
+shutil.rmtree(design_dir, ignore_errors=True)
 for f in order:
-    prefix = "D-CM" if f == "common" else "D-" + f.replace("F-", "").replace("-", "")
-    lines = by_file[f]
-    # インプットは観点ごとにまとめる（ID 設計書の章立てに合わせる）。観点の順は振り分け表の順
-    view_order = list(dict.fromkeys(x["view"] for x in build.I))
-    lines.sort(key=lambda t: view_order.index(items[t[0]]["view"]))
-    md = [f"# {'' if f == 'common' else f + ' '}{FILES[f]}", ""]
-    md.append("> 振り分け評価のインプット。1行に1つの決定事項を書く。設計項目や振り分け先は書かない。")
+    feat = feature_of(f)
+    code = "CM" if f == "common" else feat.replace("F-", "").replace("-", "")
+    entries = [x for x in ALL if x[0] == f]
+    detailed = "/" in f
+    md = []
+    if detailed:
+        num, docname = f.split("/")[1].split("_", 1)
+        md.append(f"# {feat} {DETAILED[feat]} — {docname}")
+    else:
+        md.append(f"# {'' if f == 'common' else f + ' '}{FILES[f]}")
+        entries = [x for x in entries if x[1] is not None]
+        entries.sort(key=lambda x: view_order.index(items[x[1]]["view"]))
+    md += ["", "> 振り分け評価のインプット。1行に1つの決定事項を書く。設計項目や振り分け先は書かない。"]
     current = None
-    for n, (item, text, over) in enumerate(lines, 1):
+    n = 0
+    for _, item, text, over in entries:
+        if item is None:
+            md += ["", f"## {text}", ""]
+            continue
+        view = items[item]["view"]
+        if not detailed and view != current:
+            md += ["", f"## {view}", ""]
+            current = view
+        if detailed and (len(md) == 0 or md[-1].startswith(">")):
+            md.append("")
+        n += 1
+        lid = f"D-{code}-{num}{n:02d}" if detailed else f"D-{code}-{n:03d}"
+        md.append(f"- {lid} {text}")
         x = dict(items[item])
         x.update(over)
         diff = "・".join(f"{k}: {items[item][k]}→{v}" for k, v in over.items() if items[item][k] != v)
         diff = diff.replace("nature", "性質").replace("check", "機械検査").replace("scope", "適用範囲").replace("appr", "業務承認")
         if diff:
             diff = "項目の既定と違う（" + diff + "）"
-        view = items[item]["view"]
-        if view != current:
-            md += ["", f"## {view}", ""]
-            current = view
-        lid = f"{prefix}-{n:03d}"
-        md.append(f"- {lid} {text}")
         main, sub, place, owner = build.map_item(x)
         rows.append([lid, f, view, item, text, x["nature"], x["check"], x["scope"], x["appr"],
                      main, sub, place, owner, diff])
-    with open(os.path.join(HERE, "design", f"{f}.md"), "w", encoding="utf-8") as fp:
+    if detailed and n > 99:
+        print(f"{f}: 99行を超えた")
+        sys.exit(1)
+    path = os.path.join(design_dir, f + ".md")
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w", encoding="utf-8") as fp:
         fp.write("\n".join(md) + "\n")
 
 hdr = ["行ID", "ファイル", "観点", "設計項目", "本文", "性質", "機械検査", "適用範囲", "業務承認",
@@ -91,6 +117,7 @@ with open(os.path.join(HERE, "expected.csv"), "w", encoding="utf-8-sig", newline
     w.writerow(hdr)
     w.writerows(rows)
 
-print(f"{len(rows)} 行 / {len(FILES)} ファイル / 設計項目 {len(used)}/{len(items)}")
+print(f"{len(rows)} 行 / {len(order)} ファイル / 設計項目 {len(used)}/{len(items)}")
+print("上書き行:", sum(1 for r in rows if r[13]))
 print("振り分け先（主）:", dict(Counter(r[9] for r in rows)))
-print("ファイル別:", dict(Counter(r[1] for r in rows)))
+print("機能別:", dict(Counter(feature_of(r[1]) for r in rows)))
