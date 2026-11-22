@@ -253,6 +253,17 @@ add(V,"迷ったときの扱い","判断できないときにどうするか","�
 add(V,"業務ルールの抽出元","既存の設計書から守りたいものを取り出す","旧システムの設計書からの業務ルールは base-spec-extraction で候補にし、予約担当の承認を得る","方針・判断","不可","全体共通","不要","規約")
 
 
+# 項番 D-ccsss: cc = 観点の番号（2桁）、sss = 観点の中の通し番号（3桁）
+# 項番は付けたら変えない。追加は観点の末尾、途中への挿入はしない。使わなくなった項番も消さない。
+VIEWS = list(dict.fromkeys(x["view"] for x in I))
+ID = {}
+_seq = {}
+for _x in I:
+    _v = VIEWS.index(_x["view"]) + 1
+    _seq[_v] = _seq.get(_v, 0) + 1
+    ID[_x["item"]] = f"D-{_v:02d}{_seq[_v]:03d}"
+
+
 def map_item(x):
     """属性だけから振り分け先を決める。人の判断を入れない。"""
     n, c, s, a = x["nature"], x["check"], x["scope"], x["appr"]
@@ -288,11 +299,48 @@ def map_item(x):
     return main, sub, place, owner
 
 
+def write_markdown(documents, pairs):
+    """ドキュメント体系.md（GitHub で読む用）。正本は Excel。"""
+    import os
+    view = {x["item"]: x["view"] for x in I}
+    out = ["# ドキュメント体系（ID 設計）", "",
+           "> `build.py` が `documents.py` から生成します。直接編集しないでください。正本は Excel（`ID設計項目の振り分け表.xlsx`）です。", "",
+           "ID 設計は2段で決めます。", "",
+           "1. **書類一覧**：どんな書類を、どの単位で作るか（`S-xx`）",
+           "2. **記載項目**：その書類に、どの設計項目（`D-ccsss`）を書くか", "",
+           "書類IDの十の位は区分です（1 共通設計、2 機能別設計、3 開発・運用）。設計項目の項番は `D-` + 観点2桁 + 通し番号3桁です。", "",
+           "## 書類一覧", "",
+           "| 書類ID | 書類名 | 区分 | 作る単位 | 目的 | 書く人 | 承認する人 | 記載項目（必須／全体） |",
+           "| --- | --- | --- | --- | --- | --- | --- | --- |"]
+    for did, name, kind, unit, purpose, reader, writer, approver in documents.DOCS:
+        lst = documents.A[did]
+        must = sum(1 for _, need, _ in lst if need == "必須")
+        out.append(f"| {did} | {name} | {kind} | {unit} | {purpose} | {writer} | {approver} | {must}／{len(lst)} |")
+    out += ["", "## 書類ごとの記載項目", ""]
+    for did, name, kind, unit, purpose, reader, writer, approver in documents.DOCS:
+        out += [f"### {did} {name}（{unit}）", "", "| 項番 | 観点 | 設計項目 | 記載 | この書類で書くこと |", "| --- | --- | --- | --- | --- |"]
+        for d, it, need, note in pairs:
+            if d == did:
+                out.append(f"| {ID[it]} | {view[it]} | {it} | {need} | {note} |")
+        out.append("")
+    multi = {}
+    for d, it, need, note in pairs:
+        multi.setdefault(it, []).append(d)
+    out += ["## 複数の書類に書く設計項目", "",
+            "同じ設計項目でも、共通設計には方式や一覧を、機能別設計にはその機能での値や違いを書きます。", "",
+            "| 項番 | 設計項目 | 書く書類 |", "| --- | --- | --- |"]
+    for it in sorted((k for k, v in multi.items() if len(v) > 1), key=lambda k: ID[k]):
+        out.append(f"| {ID[it]} | {it} | {'・'.join(multi[it])} |")
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ドキュメント体系.md")
+    with open(path, "w", encoding="utf-8") as fp:
+        fp.write("\n".join(out) + "\n")
+
+
 def main():
     rows = []
     for i, x in enumerate(I, 1):
         m, sb, pl, ow = map_item(x)
-        rows.append([f"D-{i:03d}", x["view"], x["item"], x["decide"], x["ex"], x["nature"], x["check"], x["scope"], x["appr"], m, sb, pl, ow, x["form"]])
+        rows.append([ID[x["item"]], x["view"], x["item"], x["decide"], x["ex"], x["nature"], x["check"], x["scope"], x["appr"], m, sb, pl, ow, x["form"]])
 
     hdr = ["No", "観点", "設計項目", "決めること", "例", "性質", "機械検査", "適用範囲", "業務承認", "振り分け先（主）", "振り分け先（副）", "tazuna の置き場所", "持ち主", "記述の型"]
 
@@ -306,7 +354,12 @@ def main():
     from openpyxl.styles import Font, PatternFill, Alignment
     wb = Workbook()
     ws = wb.active; ws.title = "振り分け表"
-    H = ["No","観点","設計項目","振り分け先（主）","性質","機械検査","適用範囲","業務承認","振り分け先（副）","tazuna の置き場所","持ち主","記述の型","決めること","例"]
+    import documents
+    docs_of = {}
+    for _d, _lst in documents.A.items():
+        for _it, _need, _note in _lst:
+            docs_of.setdefault(_it, []).append(_d)
+    H = ["項番","観点","設計項目","振り分け先（主）","性質","機械検査","適用範囲","業務承認","振り分け先（副）","tazuna の置き場所","持ち主","記述の型","決めること","例","書く書類"]
     ws.append(H)
     for i, x in enumerate(I, 2):
         r = i
@@ -317,10 +370,10 @@ def main():
              f'IF(F{r}="実行で可",IF(E{r}="方針・判断","性能・運用試験＋PRの証拠",IF(H{r}="要","docs/requirements の完了条件 → src/test","src/test（単体・共通テスト）")),'
              f'IF(H{r}="要","設計書（承認）→ 決定事項を docs/domain へ",IF(G{r}="全体共通",".github/skills/base-*・docs/conventions.md",".github/skills/proj-*・docs/domain/"))))))')
         K = f'=IF(AND(G{r}="全体共通",OR(LEFT(D{r},4)="Lint",LEFT(D{r},2)="設計",LEFT(D{r},5)="hooks",D{r}="テスト",LEFT(D{r},5)="AIへの条")),"標準化チーム（型）",IF(H{r}="要","社員","案件リーダー"))'
-        ws.append([f"D-{i-1:03d}", x["view"], x["item"], D, x["nature"], x["check"], x["scope"], x["appr"], Isub, J, K, x["form"], x["decide"], x["ex"]])
-    for c in range(1, 15):
+        ws.append([ID[x["item"]], x["view"], x["item"], D, x["nature"], x["check"], x["scope"], x["appr"], Isub, J, K, x["form"], x["decide"], x["ex"], "・".join(docs_of[x["item"]])])
+    for c in range(1, 16):
         ws.cell(1, c).fill = PatternFill("solid", fgColor="F3F3F3")
-    widths = [7, 16, 22, 26, 11, 10, 10, 9, 26, 34, 16, 10, 34, 36]
+    widths = [9, 16, 22, 26, 11, 10, 10, 9, 26, 34, 16, 10, 34, 36, 14]
     for i, w in enumerate(widths):
         ws.column_dimensions[chr(65+i)].width = w
     for row in ws.iter_rows(min_row=2, min_col=13, max_col=14):
@@ -395,6 +448,38 @@ def main():
         dv = DataValidation(type="list", formula1=f'"{vals}"', allow_blank=False)
         dv.error = "決められた値から選んでください（属性の判定基準シート参照）"
         ws.add_data_validation(dv); dv.add(f"{col}2:{col}{last}")
+    # ---- 書類一覧・記載項目（2段の構成）----
+    pairs = [(d, it, need, note) for d, _, _, _, _, _, _, _ in documents.DOCS for it, need, note in documents.A[d]]
+    pairs.sort(key=lambda p: (p[0], ID[p[1]]))
+    np_ = len(pairs) + 1
+    s1 = wb.create_sheet("書類一覧", 0)
+    s1.append(["書類ID", "書類名", "区分", "作る単位", "目的", "主な読み手", "書く人", "承認する人", "記載項目数", "うち必須"])
+    for j, (did, name, kind, unit, purpose, reader, writer, approver) in enumerate(documents.DOCS, 2):
+        s1.append([did, name, kind, unit, purpose, reader, writer, approver,
+                   f"=COUNTIF('記載項目'!A$2:A${np_},A{j})", f"=COUNTIFS('記載項目'!A$2:A${np_},A{j},'記載項目'!G$2:G${np_},\"必須\")"])
+    s2 = wb.create_sheet("記載項目", 1)
+    s2.append(["書類ID", "書類名", "区分", "項番", "観点", "設計項目", "記載", "この書類で書くこと", "振り分け先（主）"])
+    nd = len(documents.DOCS) + 1
+    for j, (did, it, need, note) in enumerate(pairs, 2):
+        s2.append([did,
+                   f"=VLOOKUP(A{j},'書類一覧'!A$2:C${nd},2,FALSE)",
+                   f"=VLOOKUP(A{j},'書類一覧'!A$2:C${nd},3,FALSE)",
+                   ID[it],
+                   f"=INDEX('振り分け表'!B$2:B${last},MATCH(D{j},'振り分け表'!A$2:A${last},0))",
+                   it, need, note,
+                   f"=INDEX('振り分け表'!D$2:D${last},MATCH(D{j},'振り分け表'!A$2:A${last},0))"])
+    for sh, ws_ in ((s1, [7, 20, 11, 22, 60, 22, 11, 16, 10, 9]), (s2, [7, 20, 11, 9, 18, 24, 8, 44, 28])):
+        for c in range(1, len(ws_) + 1):
+            sh.cell(1, c).fill = PatternFill("solid", fgColor="F3F3F3")
+            sh.column_dimensions[chr(64 + c)].width = ws_[c - 1]
+        sh.freeze_panes = "C2"
+    for row in s1.iter_rows(min_row=2, min_col=5, max_col=5):
+        for c in row: c.alignment = Alignment(wrap_text=True, vertical="top")
+    dv2 = DataValidation(type="list", formula1='"必須,該当時"', allow_blank=False)
+    s2.add_data_validation(dv2); dv2.add(f"G2:G{np_}")
+    wb.active = 0
+    write_markdown(documents, pairs)
+
     import os
     out = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ID設計項目の振り分け表.xlsx")
     wb.save(out)

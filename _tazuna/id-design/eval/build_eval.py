@@ -100,7 +100,7 @@ for f in order:
         if diff:
             diff = "項目の既定と違う（" + diff + "）"
         main, sub, place, owner = build.map_item(x)
-        rows.append([lid, f, view, item, text, x["nature"], x["check"], x["scope"], x["appr"],
+        rows.append([lid, f, view, build.ID[item], item, text, x["nature"], x["check"], x["scope"], x["appr"],
                      main, sub, place, owner, diff])
     if detailed and n > 99:
         print(f"{f}: 99行を超えた")
@@ -110,7 +110,7 @@ for f in order:
     with open(path, "w", encoding="utf-8") as fp:
         fp.write("\n".join(md) + "\n")
 
-hdr = ["行ID", "ファイル", "観点", "設計項目", "本文", "性質", "機械検査", "適用範囲", "業務承認",
+hdr = ["行ID", "ファイル", "観点", "項番", "設計項目", "本文", "性質", "機械検査", "適用範囲", "業務承認",
        "振り分け先（主）", "振り分け先（副）", "tazuna の置き場所", "持ち主", "備考"]
 with open(os.path.join(HERE, "expected.csv"), "w", encoding="utf-8-sig", newline="") as fp:
     w = csv.writer(fp)
@@ -118,6 +118,6 @@ with open(os.path.join(HERE, "expected.csv"), "w", encoding="utf-8-sig", newline
     w.writerows(rows)
 
 print(f"{len(rows)} 行 / {len(order)} ファイル / 設計項目 {len(used)}/{len(items)}")
-print("上書き行:", sum(1 for r in rows if r[13]))
-print("振り分け先（主）:", dict(Counter(r[9] for r in rows)))
+print("上書き行:", sum(1 for r in rows if r[14]))
+print("振り分け先（主）:", dict(Counter(r[10] for r in rows)))
 print("機能別:", dict(Counter(feature_of(r[1]) for r in rows)))
