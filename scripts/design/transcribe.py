@@ -90,7 +90,9 @@ def plan(folder):
         else:
             home = f"{inst}_{title}"
         home_title = home.split("_", 1)[1]
-        srcs[inst] = hashlib.sha1(repr((lines, func, common)).encode()).hexdigest()[:12]
+        # 図を付けていない行は以前と同じ形で指紋を取る（ツールを更新しただけで「要転記」にならないように）
+        keyed = [ln if ln[4] else ln[:4] for ln in lines]
+        srcs[inst] = hashlib.sha1(repr((keyed, func, common)).encode()).hexdigest()[:12]
 
         req, spec, cond, basis, cand, know, tasks = [], [], [], [], [], [], {}
         for lid, text, iid, x, att in lines:
