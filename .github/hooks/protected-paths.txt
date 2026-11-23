@@ -15,6 +15,7 @@ harness/tazuna-version
 harness/GUIDE.md
 harness/id-design/*
 scripts/lint/tests/*
+scripts/design/*
 #
 # --- 業務の正本（社員が管理）---
 docs/requirements/*

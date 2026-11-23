@@ -17,4 +17,5 @@ scripts/tazuna-update.sh
 harness/GUIDE.md
 harness/id-design/*
 scripts/lint/tests/*
+scripts/design/*
 harness/tazuna-paths.txt

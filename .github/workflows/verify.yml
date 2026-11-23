@@ -20,6 +20,8 @@ jobs:
         run: bash .github/hooks/tests/test-guard.sh
       - name: Lint の自己テスト（ID 設計書）
         run: bash scripts/lint/tests/test-design-docs.sh
+      - name: 転記ツールの自己テスト
+        run: bash scripts/lint/tests/test-design-transcribe.sh
 
   build:
     name: ビルドとテスト

@@ -18,6 +18,7 @@ repo-root/
 │  │  ├─ base-code-review/       # レビューの観点と記録（型）
 │  │  ├─ base-harness-improvement/ # ミスを防ぐ層を決める（型）
 │  │  ├─ base-spec-extraction/   # 既存の設計書から守りたいものを抽出（型）
+│  │  ├─ base-design-check/      # ID 設計書の置き場所と属性の例外を確認（型）
 │  │  └─ proj-example-reservation/ # proj スキルの見本
 │  ├─ hooks/
 │  │  ├─ tazuna-guard.json       # Copilot の hooks 設定
@@ -27,19 +28,24 @@ repo-root/
 │  │  └─ tests/                  # hooks の自己テスト
 │  └─ workflows/verify.yml       # CI（Lint・hooksテスト・mvn verify）
 ├─ docs/
-│  ├─ requirements/              # 要件・完了条件（REQ-xxx）
+│  ├─ design/                    # ID 設計書（書類ごと。案件で書く）
+│  ├─ requirements/              # 要件・完了条件（REQ-xxx）。ID 設計から転記した分も入る
 │  ├─ domain/                    # 不変条件・用語集・機能一覧
 │  │  └─ candidates/             # 設計書から抽出した候補（承認前）
+│  ├─ tasks/                     # ID 設計から転記した作業一覧（実装の issue から参照）
 │  ├─ architecture.md
 │  └─ conventions.md
+├─ scripts/design/transcribe.py  # ID 設計書を振り分け先へ転記する
 ├─ scripts/lint/
 │  ├─ run-all.sh                 # 全チェックを実行
 │  ├─ lib.sh                     # 「内容・理由・修正・参照」を出す共通関数
-│  ├─ common/                    # 汎用チェック（型）
+│  ├─ common/                    # 汎用チェック（型）。ID 設計書の置き場所・転記漏れも検査
+│  ├─ tests/                     # Lint と転記ツールの自己テスト
 │  └─ domain/                    # 業務固有チェック（案件で作る）
 ├─ src/                          # Java の見本（ツアー予約・ArchUnit）
 └─ harness/
    ├─ GUIDE.md                   # 運用ガイド（人向け）
+   ├─ id-design/                 # 設計項目・書類・記載項目のカタログ（Lint・スキル・転記ツールが読む）
    ├─ rule-log.md                # 違反の記録
    └─ metrics.md                 # 月次の指標
 ```
