@@ -65,6 +65,17 @@ ID 設計を、ドキュメント体系（`../ドキュメント体系.md`）の
 
 外れた行は「判定基準が足りない」「書き方が曖昧」「正解が間違い」のどれかに分けます。正解が間違いなら `source.py` を直します。
 
+## 採点する
+
+```bash
+# 置き場所の形式（Lint、COMMON-007）。評価セットは形式の誤りがないので 0 件になる
+python3 scripts/lint/common/design_docs.py _tazuna/id-design/eval/design
+# 中身の判断（スキル base-design-check の指摘一覧を採点）
+python3 _tazuna/id-design/eval/score.py 指摘一覧.tsv
+```
+
+スキルを試すときは、`design/`・`harness/id-design/`・スキルだけを別の場所に写し、`expected.csv` と `source.py` が見えない状態で動かします。
+
 ## 作り直す
 
 ```bash

@@ -15,4 +15,6 @@ scripts/lint/run-all.sh
 scripts/lint/common/*
 scripts/tazuna-update.sh
 harness/GUIDE.md
+harness/id-design/*
+scripts/lint/tests/*
 harness/tazuna-paths.txt

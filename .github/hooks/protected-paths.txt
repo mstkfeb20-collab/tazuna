@@ -13,6 +13,8 @@ scripts/tazuna-update.sh
 harness/tazuna-paths.txt
 harness/tazuna-version
 harness/GUIDE.md
+harness/id-design/*
+scripts/lint/tests/*
 #
 # --- 業務の正本（社員が管理）---
 docs/requirements/*

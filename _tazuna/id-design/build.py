@@ -370,6 +370,25 @@ def write_markdown(documents, pairs):
         fp.write("\n".join(out) + "\n")
 
 
+def write_catalog(documents, pairs):
+    """Lint とスキルが読む機械可読のカタログ（harness/id-design/）。正本は Excel と documents.py。"""
+    import os
+    root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    out = os.path.join(root, "harness", "id-design")
+    os.makedirs(out, exist_ok=True)
+    def tsv(name, header, rows):
+        with open(os.path.join(out, name), "w", encoding="utf-8") as fp:
+            fp.write("\t".join(header) + "\n")
+            for r in rows:
+                fp.write("\t".join(str(c).replace("\t", " ").replace("\n", " ") for c in r) + "\n")
+    tsv("items.tsv", ["項番", "観点", "設計項目", "性質", "機械検査", "業務承認", "決めること", "例", "型で用意済み"],
+        [[ID[x["item"]], x["view"], x["item"], x["nature"], x["check"], x["appr"], x["decide"], x["ex"], TEMPLATE.get(x["item"], "")] for x in I])
+    tsv("documents.tsv", ["書類ID", "書類名", "区分", "作る単位", "目的"],
+        [[d[0], d[1], d[2], d[3], d[4]] for d in documents.DOCS])
+    tsv("records.tsv", ["書類ID", "項番", "設計項目", "記載", "この書類で書くこと"],
+        [[d, ID[it], it, need, note] for d, it, need, note in pairs])
+
+
 def main():
     import os
     import documents
@@ -527,6 +546,7 @@ def main():
 
     wb.active = 0
     write_markdown(documents, pairs)
+    write_catalog(documents, pairs)
     out = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ID設計項目の振り分け表.xlsx")
     wb.save(out)
     print("xlsx saved")

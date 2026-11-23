@@ -18,6 +18,8 @@ jobs:
         run: bash scripts/lint/run-all.sh
       - name: hooks の自己テスト
         run: bash .github/hooks/tests/test-guard.sh
+      - name: Lint の自己テスト（ID 設計書）
+        run: bash scripts/lint/tests/test-design-docs.sh
 
   build:
     name: ビルドとテスト
