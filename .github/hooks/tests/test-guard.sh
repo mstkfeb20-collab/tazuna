@@ -42,6 +42,8 @@ expect deny  "base スキルの編集を止める"     "$(edit_path '.github/ski
 expect deny  "不変条件の編集を止める"        "$(edit_path 'docs/domain/invariants.md')"
 expect deny  "共通Lintの編集を止める"        "$(edit_path 'scripts/lint/common/skill-naming.sh')"
 expect deny  "絶対パスでも止める"            "$(edit_path "$PWD/docs/requirements/README.md")"
+expect deny  "ID 設計の原本（Excel）の編集を止める" "$(edit_path 'docs/design/ID設計.xlsx')"
+expect allow "ID 設計書の編集は通す"            "$(edit_path 'docs/design/S-22-001_予約登録.md')"
 expect deny  "シェル経由の書き換えも止める"   "$(bash_cmd 'sed -i s/a/b/ docs/domain/invariants.md')"
 expect allow "proj スキルは編集できる"       "$(edit_path '.github/skills/proj-example-reservation/SKILL.md')"
 expect allow "業務固有Lintは編集できる"      "$(edit_path 'scripts/lint/domain/java-money-no-float.sh')"

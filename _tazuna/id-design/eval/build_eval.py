@@ -3,7 +3,7 @@
     python3 _tazuna/id-design/eval/build_eval.py
 
 あわせて次を確かめ、満たさなければ終了コード1で止まる。
-  - 書類実体の書類ID・設計項目名が、ドキュメント体系（../documents.py）と振り分け表（../build.py）にある
+  - 書類実体の書類ID・設計項目名が、型（docs/design/ID設計.md）の書類の種類と設計項目にある
   - 書いた設計項目が、その書類の記載項目に入っている（正しい設計項目も、正しい書類の記載項目に入っている）
   - 振り分け表の198項目が、すべて1行以上インプットに現れる（正しい設計項目で数える）
   - 振り分け表の「例」が、その項目のどれかの行の本文と一致する
@@ -16,9 +16,9 @@ import sys
 from collections import Counter
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, os.path.dirname(HERE))
-import build  # noqa: E402
-import documents  # noqa: E402
+sys.path.insert(0, HERE)
+import compat as build  # noqa: E402
+documents = build  # noqa: E402
 from source import INSTANCES, L, TARGET  # noqa: E402
 
 items = {x["item"]: x for x in build.I}
@@ -98,13 +98,23 @@ for i, (doc, title) in inst.items():
     with open(os.path.join(design_dir, fname), "w", encoding="utf-8") as fp:
         fp.write("\n".join(md) + "\n")
 
-# 書類一覧（どの書類実体が、どの機能＝処理設計書のものか）
-reg = ["# 書類一覧", "", "> 評価セットの書類実体と、機能別の書類がどの処理設計書のものか。", "",
-       "| 書類実体ID | 書類 | 名前 | 機能 |", "| --- | --- | --- | --- |"]
+# 書類一覧（ID設計.xlsx の書き出しと同じ形で、型に評価セットの機能一覧・書類一覧を入れる）
+sys.path.insert(0, os.path.join(build.ROOT, "scripts", "design"))
+import catalog  # noqa: E402
+snap = dict(build.DATA)
+names = {i: re.sub(r"（.*?）", "", title).replace(" ", "") for i, (doc, title) in inst.items()}
+snap["書類一覧"] = [{"書類実体ID": i, "書類ID": doc, "書類名": docs[doc][1], "名前": names[i],
+                   "機能": TARGET.get(i, ""), "作成": "書く", "理由": ""} for i, (doc, title) in inst.items()]
+funcs = {}
 for i, (doc, title) in inst.items():
-    reg.append(f"| {i} | {docs[doc][1]} | {re.sub(r'（.*?）', '', title).replace(' ', '')} | {TARGET.get(i, '')} |")
-with open(os.path.join(design_dir, "書類一覧.md"), "w", encoding="utf-8") as fp:
-    fp.write("\n".join(reg) + "\n")
+    if doc == "S-22":
+        funcs[i] = {"機能": names[i], "画面": [], "ジョブ": [], "IF": [], "帳票": [], "テーブル": [], "説明": ""}
+col = {"S-21": "画面", "S-23": "ジョブ", "S-24": "IF", "S-25": "帳票"}
+for i, (doc, title) in inst.items():
+    if doc in col and TARGET.get(i) in funcs:
+        funcs[TARGET[i]][col[doc]].append(names[i])
+snap["機能一覧"] = [{k: ("、".join(v) if isinstance(v, list) else v) for k, v in f.items()} for f in funcs.values()]
+catalog.write_snapshot(snap, os.path.join(design_dir, catalog.SNAPSHOT))
 
 hdr = ["行ID", "ファイル", "書類ID", "書類名", "区分", "書いた項番", "書いた設計項目", "置き場所の判定",
        "正しい書類実体", "正しい項番", "正しい設計項目", "本文", "性質", "機械検査", "業務承認",

@@ -28,29 +28,46 @@ repo-root/
 │  │  └─ tests/                  # hooks の自己テスト
 │  └─ workflows/verify.yml       # CI（Lint・hooksテスト・mvn verify）
 ├─ docs/
-│  ├─ design/                    # ID 設計書（書類ごと。案件で書く）
+│  ├─ design/                    # ID 設計
+│  │  ├─ ID設計.xlsx             # 原本。機能一覧（人が書く）→ 書類一覧・進捗・網羅状況（自動）、型（書類の種類・記載項目・設計項目）
+│  │  ├─ ID設計.md               # Excel の書き出し（PR で差分を読む・ツールが読む）
+│  │  └─ S-22-001_予約登録.md など # 設計書（1書類1ファイル。案件で書く）
 │  ├─ requirements/              # 要件・完了条件（REQ-xxx）。ID 設計から転記した分も入る
 │  ├─ domain/                    # 不変条件・用語集・機能一覧
 │  │  └─ candidates/             # 設計書から抽出した候補（承認前）
 │  ├─ tasks/                     # ID 設計から転記した作業一覧（実装の issue から参照）
 │  ├─ architecture.md
 │  └─ conventions.md
-├─ scripts/design/transcribe.py  # ID 設計書を振り分け先へ転記する
+├─ scripts/design/
+│  ├─ id_design.py               # 書類一覧・ひな形・進捗の作成、Excel の書き出し
+│  ├─ transcribe.py              # 設計書を振り分け先（要件・作業一覧など）へ転記する
+│  └─ catalog.py                 # Excel と書き出しの読み書き
 ├─ scripts/lint/
 │  ├─ run-all.sh                 # 全チェックを実行
 │  ├─ lib.sh                     # 「内容・理由・修正・参照」を出す共通関数
 │  ├─ common/                    # 汎用チェック（型）。ID 設計書の置き場所・転記漏れも検査
-│  ├─ tests/                     # Lint と転記ツールの自己テスト
+│  ├─ tests/                     # Lint・転記ツール・ID 設計のコマンドの自己テスト
 │  └─ domain/                    # 業務固有チェック（案件で作る）
 ├─ src/                          # Java の見本（ツアー予約・ArchUnit）
 └─ harness/
    ├─ GUIDE.md                   # 運用ガイド（人向け）
-   ├─ id-design/                 # 設計項目・書類・記載項目のカタログ（Lint・スキル・転記ツールが読む）
    ├─ rule-log.md                # 違反の記録
    └─ metrics.md                 # 月次の指標
 ```
 
 考え方と運用のルールは [harness/GUIDE.md](harness/GUIDE.md) を参照。
+
+## ID 設計から実装までの進め方
+
+| 段階 | すること | コマンド（人が実行） | 承認 |
+| --- | --- | --- | --- |
+| 準備 | `ID設計.xlsx` の機能一覧に、機能と画面・ジョブ・IF・帳票・テーブルを書く。書類一覧ができたら、作らない書類に「書かない」を付ける | `id_design.py list` → `id_design.py scaffold` | 社員 |
+| ① 設計 | ひな形の見出しの下に1行1決定事項で書き、書類ごとに PR でレビューする | — | 社員 |
+| ② 要件を決める | 機能の資料がそろったら転記し、要件とテスト仕様を PR で決める | `transcribe.py` | 社員 |
+| ③ 実装 | 要件とテスト仕様からテストと実装を書く。PR に `対象要件: REQ-xxx` を書く | — | 案件リーダー |
+| ④ マージ | Lint と CI（対象要件にテストがあるか）を通してマージする | — | — |
+
+進み具合は `python3 scripts/design/id_design.py progress` で `ID設計.xlsx` の進捗・網羅状況シートに出る（未着手・執筆中・レビュー中・完了・要転記、要件ごとの未実装・テストあり）。Excel を直したら `id_design.py export` で書き出し（`ID設計.md`）も作り直し、一緒にコミットする。Excel を読むコマンドには `pip install openpyxl` が要る。
 
 ## 指南書（テンプレートの外）
 

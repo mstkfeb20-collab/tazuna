@@ -12,8 +12,8 @@ import os
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, os.path.dirname(HERE))
-import build  # noqa: E402
+sys.path.insert(0, HERE)
+import compat as build  # noqa: E402
 
 exp = {r["行ID"]: r for r in csv.DictReader(open(os.path.join(HERE, "expected.csv"), encoding="utf-8-sig"))}
 items = {build.ID[x["item"]]: x for x in build.I}
