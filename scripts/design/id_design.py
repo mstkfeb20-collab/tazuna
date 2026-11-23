@@ -2,7 +2,7 @@
 
     python3 scripts/design/id_design.py list       # 機能一覧から書類一覧を作り直す（番号は保ち、新しい書類だけ末尾の番号を振る）
     python3 scripts/design/id_design.py scaffold   # 書類一覧で「書く」にした書類のうち、まだないものの設計書ファイルを作る（見出しだけのひな形）
-    python3 scripts/design/id_design.py progress   # 進捗・網羅状況のシートを作り直す
+    python3 scripts/design/id_design.py progress   # 進捗・網羅状況のシートを作り直す（先に git fetch。main と比べて完了かを決める）
     python3 scripts/design/id_design.py export     # 書き出し（ID設計.md）を作る。--check なら食い違いを確かめるだけ
     オプション: --design <設計書のフォルダ>（既定 docs/design）
 
