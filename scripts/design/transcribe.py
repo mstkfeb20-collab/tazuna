@@ -16,6 +16,7 @@
   設計・Lint・実行検証・hooks・テスト（業務承認=不要）・人のための設計
                                 → docs/tasks/<書類実体>.md（作業一覧。実装の issue から参照する）
   機械で守る項目で業務承認=要の根拠 → 機能別: 要件ファイルの「型・Lint で守る決まり」 / 共通: 候補ファイル
+書類一覧（docs/design/書類一覧.md、registry.py）で機能が決まっている書類は、要件と作業一覧をその処理設計書のファイルにまとめる。
 """
 import argparse
 import csv
@@ -28,7 +29,8 @@ FILE_RE = re.compile(r"^(S-(\d{2}))-(\d{3})_(.+)\.md$")
 HEAD_RE = re.compile(r"^## (D-\d{5}) ")
 LINE_RE = re.compile(r"^- (S-\d{2}-\d{3}-\d{3}) (.*)$")
 OVER_RE = re.compile(r"\s*\{([^{}]*)\}\s*$")
-TARGET_RE = re.compile(r"^> 対象: (S-22-\d{3}(?:[、,] *S-22-\d{3})*)\s*$")
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import registry  # noqa: E402
 KEYS = {"性質": "nature", "機械検査": "check", "業務承認": "appr"}
 
 
@@ -53,19 +55,18 @@ def destination(n, c, a):
 def read_design(folder, items, docs):
     """[(書類実体, 書類ID, 名前, 区分, 対象の処理設計書, [(行ID, 本文, 項番, 属性)])]"""
     out = []
+    reg = registry.read(folder)[0] or {}
     for name in sorted(os.listdir(folder)):
         m = FILE_RE.match(name)
         if not m:
             continue
         doc, inst, title = m.group(1), f"{m.group(1)}-{m.group(3)}", m.group(4)
-        lines, head, target = [], None, None
+        lines, head = [], None
+        r = reg.get(inst)
+        target = r["funcs"][0] if r and r["funcs"] else None
         with open(os.path.join(folder, name), encoding="utf-8") as fp:
             for raw in fp:
                 raw = raw.rstrip("\n")
-                t = TARGET_RE.match(raw)
-                if t and head is None:
-                    target = re.split(r"[、,] *", t.group(1))[0]
-                    continue
                 h = HEAD_RE.match(raw)
                 if h:
                     head = h.group(1)
@@ -128,7 +129,8 @@ def build(folder):
                 (cand if common else basis).append(entry)
 
         stem = f"{inst}_{title}"
-        # 対象の処理設計書がある書類（テスト仕様書・画面・ジョブ・IF・帳票）は、要件と作業一覧を対象のファイルにまとめる
+        # 書類一覧で機能（処理設計書）が決まっている書類（テスト仕様書・画面・ジョブ・IF・帳票）は、
+        # 要件と作業一覧をその処理設計書のファイルにまとめる（機能が複数あれば最初の処理設計書）
         home = stems.get(target, stem) if target else stem
         home_title = home.split("_", 1)[1]
         if not common and (req or cond or basis):
@@ -141,7 +143,7 @@ def build(folder):
             if basis:
                 body += ["", f"### 型・Lint で守る決まり（{inst}・業務の承認済み）", ""] + basis
             put(f"docs/requirements/{home}.md", inst, body,
-                [f"# {home_title}", "", f"> ID 設計 {home.split('_')[0]} とその対象の書類から転記した要件。設計書を直して転記し直す。目印の中は手で直さない。", ""])
+                [f"# {home_title}", "", f"> ID 設計 {home.split('_')[0]} と、書類一覧でこの機能に属する書類から転記した要件。設計書を直して転記し直す。目印の中は手で直さない。", ""])
         if common and cond:
             put("docs/conventions.md", inst, [f"## 設計から転記した決まり（{label}）", ""] + cond)
         if common and cand:
@@ -163,7 +165,7 @@ def build(folder):
             if home != stem:
                 body = [f"## {label}", ""] + [("#" + b if b.startswith("## ") else b) for b in body]
             put(f"docs/tasks/{home}.md", inst, body[:-1],
-                [f"# 作業一覧：{home_title}", "", f"> ID 設計 {home.split('_')[0]} とその対象の書類から転記した作業。実装の issue から参照する。", ""])
+                [f"# 作業一覧：{home_title}", "", f"> ID 設計 {home.split('_')[0]} と、書類一覧でこの機能に属する書類から転記した作業。実装の issue から参照する。", ""])
     return files, headers
 
 

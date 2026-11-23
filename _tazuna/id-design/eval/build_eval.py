@@ -73,8 +73,6 @@ for i, (doc, title) in inst.items():
     fname = f"{i}_{re.sub(r'（.*?）', '', title).replace(' ', '')}.md"
     md = [f"# {i} {docs[doc][1]}：{title}", "",
           "> 振り分け評価のインプット。設計項目の見出しの下に、1行に1つの決定事項を書く。振り分け先は書かない。"]
-    if i in TARGET:
-        md += ["", f"> 対象: {TARGET[i]}"]
     order = sorted(dict.fromkeys(x[1] for x in lines), key=lambda it: build.ID[it])
     n = 0
     for it in order:
@@ -99,6 +97,14 @@ for i, (doc, title) in inst.items():
         print(f"{i}: 999行を超えた"); sys.exit(1)
     with open(os.path.join(design_dir, fname), "w", encoding="utf-8") as fp:
         fp.write("\n".join(md) + "\n")
+
+# 書類一覧（どの書類実体が、どの機能＝処理設計書のものか）
+reg = ["# 書類一覧", "", "> 評価セットの書類実体と、機能別の書類がどの処理設計書のものか。", "",
+       "| 書類実体ID | 書類 | 名前 | 機能 |", "| --- | --- | --- | --- |"]
+for i, (doc, title) in inst.items():
+    reg.append(f"| {i} | {docs[doc][1]} | {re.sub(r'（.*?）', '', title).replace(' ', '')} | {TARGET.get(i, '')} |")
+with open(os.path.join(design_dir, "書類一覧.md"), "w", encoding="utf-8") as fp:
+    fp.write("\n".join(reg) + "\n")
 
 hdr = ["行ID", "ファイル", "書類ID", "書類名", "区分", "書いた項番", "書いた設計項目", "置き場所の判定",
        "正しい書類実体", "正しい項番", "正しい設計項目", "本文", "性質", "機械検査", "業務承認",

@@ -7,7 +7,10 @@
   2. 見出し「## D-ccsss 設計項目名」の項番と名前がカタログと一致し、その書類の記載項目に入っている
   3. 行「- 行ID 本文」の行IDが「書類実体ID-通し番号3桁」で、ファイル名の書類実体IDと一致し、重複しない
   4. 行がどれかの見出しの下にある
-  6. テスト仕様書（S-26）は冒頭に「> 対象: S-22-nnn」がある。対象を書いた書類は、その処理設計書が同じフォルダにある
+  6. 書類一覧（docs/design/書類一覧.md）に、すべての書類実体が載っていて、名前がファイル名と同じ
+  7. 機能別設計の書類（処理設計書以外）は、書類一覧の「機能」に処理設計書が書かれていて、その処理設計書が一覧にある。
+     共通設計・開発運用の書類と処理設計書は「機能」を空にする
+  警告だけ出すこと: 書類一覧にあるのに、まだファイルがない
   5. --base を付けたとき: base にあった行IDが消えていない（廃止は消さずに「（廃止）」と書く）
   警告だけ出すこと: 書類の「必須」の記載項目に見出しがない
 カタログ: harness/id-design/{items,documents,records}.tsv（_tazuna/id-design/build.py が Excel と同時に作る）
@@ -42,8 +45,8 @@ def load(name):
 FILE_RE = re.compile(r"^(S-\d{2})-(\d{3})_.+\.md$")
 HEAD_RE = re.compile(r"^## (D-\d{5}) (.+?)\s*$")
 LINE_RE = re.compile(r"^- (\S+) (.*)$")
-TARGET_RE = re.compile(r"^> 対象: (.*)$")
-NEED_TARGET = {"S-26"}
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "design"))
+import registry  # noqa: E402
 
 
 def parse(text):
@@ -83,9 +86,11 @@ def main():
         records.setdefault(r["書類ID"], {})[r["項番"]] = r
 
     seen = {}
-    insts = {FILE_RE.match(n).group(1) + "-" + FILE_RE.match(n).group(2) for n in os.listdir(folder) if FILE_RE.match(n)}
+    files = {}
+    reg, dups = registry.read(folder)
+    reg_rel = os.path.relpath(registry.path(folder), ROOT)
     for name in sorted(os.listdir(folder)):
-        if not name.endswith(".md") or name.lower() == "readme.md":
+        if not name.endswith(".md") or name.lower() == "readme.md" or name == registry.NAME:
             continue
         path = os.path.join(folder, name)
         rel = os.path.relpath(path, ROOT)
@@ -96,6 +101,7 @@ def main():
                   "S-21-002_予約入力.md のように、書類ID（S-xx）と3桁の番号を付けてください")
             continue
         doc, inst = m.group(1), f"{m.group(1)}-{m.group(2)}"
+        files[inst] = (rel, name[len(inst) + 1:-3])
         if doc not in docs:
             error(rel, f"書類ID {doc} がドキュメント体系にありません",
                   "書類ごとに書いてよい設計項目が決まっているためです",
@@ -105,25 +111,6 @@ def main():
         with open(path, encoding="utf-8") as fp:
             body = fp.read()
         heads, lines = parse(body)
-
-        targets = []
-        for raw in body.splitlines():
-            if raw.startswith("## "):
-                break
-            t = TARGET_RE.match(raw)
-            if t:
-                targets = [s.strip() for s in t.group(1).replace("、", ",").split(",") if s.strip()]
-        if doc in NEED_TARGET and not targets:
-            error(rel, f"{docs[doc]['書類名']}に対象の処理設計書が書かれていません",
-                  "どの機能のテストかが分からないと、要件と結びつけられません",
-                  "最初の見出しより前に「> 対象: S-22-nnn」と書いてください")
-        for tg in targets:
-            if not re.fullmatch(r"S-22-\d{3}", tg):
-                error(rel, f"対象 '{tg}' が処理設計書の書類実体ID（S-22-nnn）ではありません",
-                      "要件と作業一覧は処理設計書のファイルにまとめるためです", "S-22-nnn の形で書いてください")
-            elif tg not in insts:
-                error(rel, f"対象の処理設計書 {tg} が {os.path.relpath(folder, ROOT)} にありません",
-                      "存在しない処理設計書には要件をまとめられません", f"{tg} の処理設計書を置くか、対象を直してください")
 
         for n, iid, label in heads:
             where = f"{rel}:{n}"
@@ -167,12 +154,59 @@ def main():
             if r["記載"] == "必須" and iid not in have:
                 warn(rel, f"必須の記載項目 {iid} {r['設計項目']} の見出しがありません")
 
+    check_registry(reg, dups, reg_rel, files, docs)
+
     if base:
         for lid in removed_ids(folder, base, seen):
             error(lid, f"行ID {lid} が {base} から消えています",
                   "行IDはチケットや転記先から参照されます。消すと参照が切れます",
                   "行を消さずに、本文を「（廃止）理由」や「（廃止）→ 移した先の行ID」にしてください")
     return 1 if errors else 0
+
+
+def check_registry(reg, dups, reg_rel, files, docs):
+    """書類一覧と、フォルダにある書類の突き合わせ"""
+    why_reg = "どの書類がどの機能のものかを1か所にまとめ、要件と作業一覧を機能ごとにまとめるためです"
+    if reg is None:
+        if files:
+            error(reg_rel, "書類一覧がありません", why_reg,
+                  "docs/design/書類一覧.md に「| 書類実体ID | 書類 | 名前 | 機能 |」の表を作り、すべての書類を載せてください",
+                  "scripts/design/registry.py")
+        return
+    for n, inst in dups:
+        error(f"{reg_rel}:{n}", f"書類実体ID {inst} が書類一覧で重複しています", why_reg, "1つの書類実体は1行にしてください")
+    for inst, (rel, name) in sorted(files.items()):
+        if inst not in reg:
+            error(rel, f"{inst} が書類一覧にありません", why_reg,
+                  f"書類一覧に「| {inst} | {docs.get(inst[:4], {}).get('書類名', '')} | {name} | |」の行を足してください",
+                  "scripts/design/registry.py")
+        elif reg[inst]["name"] != name:
+            error(f"{reg_rel}:{reg[inst]['line']}", f"{inst} の名前が書類一覧（'{reg[inst]['name']}'）とファイル名（'{name}'）で違います",
+                  "名前がずれると、どちらが正しいか分からなくなります", "どちらかに合わせてください")
+    for inst, r in sorted(reg.items()):
+        where = f"{reg_rel}:{r['line']}"
+        doc = inst[:4]
+        kind = docs.get(doc, {}).get("区分", "")
+        if doc not in docs:
+            error(where, f"書類ID {doc} がドキュメント体系にありません", "書類ごとに書く項目が決まっているためです", "ドキュメント体系の書類IDを使ってください")
+            continue
+        if r["doc"] and r["doc"] != docs[doc]["書類名"]:
+            error(where, f"{inst} の書類名 '{r['doc']}' が {doc}（{docs[doc]['書類名']}）と違います", "書類IDと書類名がずれると読み違えます",
+                  f"'{docs[doc]['書類名']}' にしてください")
+        needs = kind == "機能別設計" and doc != "S-22"
+        if needs and not r["funcs"]:
+            error(where, f"{inst} {r['name']} の「機能」が空です", why_reg,
+                  "この書類を使う処理設計書（S-22-nnn）を書いてください。複数あれば「、」で区切ります", "scripts/design/registry.py")
+        if not needs and r["funcs"]:
+            error(where, f"{inst} {r['name']} に「機能」が書かれています",
+                  "共通設計・開発運用の書類と処理設計書は、特定の機能に属しません", "「機能」を空にしてください", "scripts/design/registry.py")
+        for f in r["funcs"]:
+            if not re.fullmatch(r"S-22-\d{3}", f):
+                error(where, f"機能 '{f}' が処理設計書の書類実体ID（S-22-nnn）ではありません", why_reg, "S-22-nnn の形で書いてください")
+            elif f not in reg:
+                error(where, f"機能の処理設計書 {f} が書類一覧にありません", why_reg, f"{f} を書類一覧に足すか、機能を直してください")
+        if inst not in files:
+            warn(where, f"{inst} {r['name']} はまだファイルがありません")
 
 
 def removed_ids(folder, base, current):
