@@ -50,7 +50,11 @@ for i, item, text, correct, cdoc, over in L:
 texts = {}
 for _, item, text, correct, _, _ in L:
     texts.setdefault(correct or item, set()).add(text)
+# 廃止した書類の種類にしか書けない設計項目（機能一覧 S-10 の項目は Excel の機能一覧シートで持つ）は、インプットに求めない
+live = {it for t in build.DATA["書類の種類"] if (t.get("状態") or "") != "廃止" for it, _, _ in documents.A.get(t["書類ID"], [])}
 for name, x in items.items():
+    if name not in live:
+        continue
     if name not in texts:
         errors.append(f"インプットに現れない設計項目「{name}」")
     elif x["ex"] not in texts[name]:
@@ -85,7 +89,9 @@ for i, (doc, title) in inst.items():
                 continue
             n += 1
             lid = f"{i}/{build.ID[it]}/{n}"
-            md.append(f"- [{n}] {text}")
+            first, *att = text.split("\n")
+            md.append(f"- [{n}] {first}")
+            md += [f"  {x}" for x in att]
             ci, cd = correct or item, cdoc or i
             x = dict(items[ci]); x.update(over)
             main, sub = build.map_item(x)
@@ -94,7 +100,7 @@ for i, (doc, title) in inst.items():
             judge = "正しい" if (ci, cd) == (item, i) else ("書類違い" if cd != i else "項目違い")
             note = "・".join(f"{LABEL[k]}: {items[ci][k]}→{v}" for k, v in over.items())
             rows.append([lid, fname, doc, docs[doc][1], docs[doc][2], build.ID[item], item, judge,
-                         cd, build.ID[ci], ci, text, x["nature"], x["check"], x["appr"],
+                         cd, build.ID[ci], ci, text.split("\n")[0], x["nature"], x["check"], x["appr"],
                          main, sub, place, owner, ("項目の既定と違う（" + note + "）") if note else ""])
     with open(os.path.join(design_dir, fname), "w", encoding="utf-8") as fp:
         fp.write("\n".join(md) + "\n")
@@ -106,9 +112,13 @@ snap = dict(build.DATA)
 names = {i: re.sub(r"（.*?）", "", title).replace(" ", "") for i, (doc, title) in inst.items()}
 snap["書類一覧"] = [{"書類実体ID": i, "書類ID": doc, "書類名": docs[doc][1], "名前": names[i],
                    "機能": TARGET.get(i, ""), "作成": "書く", "理由": ""} for i, (doc, title) in inst.items()]
+# 書類の種類を廃止した書類（機能一覧 S-10）は、番号を残したまま廃止にする
+snap["書類一覧"] += [{"書類実体ID": "S-10-001", "書類ID": "S-10", "書類名": "機能一覧", "名前": "機能一覧",
+                    "機能": "", "作成": "廃止", "理由": "書類の種類を廃止した（ID設計.xlsx の機能一覧シートで持つ）"}]
+snap["書類一覧"].sort(key=lambda r: r["書類実体ID"])
 funcs = {}
 for i, (doc, title) in inst.items():
-    if doc == "S-22":
+    if (build.DATA["書類の種類"] and next((t.get("役割") for t in build.DATA["書類の種類"] if t["書類ID"] == doc), "")) == "機能の中心":
         funcs[i] = {"機能": names[i], "画面": [], "ジョブ": [], "IF": [], "帳票": [], "テーブル": [], "説明": ""}
 col = {"S-21": "画面", "S-23": "ジョブ", "S-24": "IF", "S-25": "帳票"}
 for i, (doc, title) in inst.items():
