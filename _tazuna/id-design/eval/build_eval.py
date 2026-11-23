@@ -75,17 +75,17 @@ for i, (doc, title) in inst.items():
     files += 1
     fname = f"{i}_{re.sub(r'（.*?）', '', title).replace(' ', '')}.md"
     md = [f"# {i} {docs[doc][1]}：{title}", "",
-          "> 振り分け評価のインプット。設計項目の見出しの下に、1行に1つの決定事項を書く。振り分け先は書かない。"]
+          "> 振り分け評価のインプット。設計項目の見出しの下に、1行に1つの決定事項を「- [番号] 本文」で書く。振り分け先は書かない。"]
     order = sorted(dict.fromkeys(x[1] for x in lines), key=lambda it: build.ID[it])
-    n = 0
     for it in order:
         md += ["", f"## {build.ID[it]} {it}", ""]
+        n = 0  # 番号は見出しの中で付ける
         for _, item, text, correct, cdoc, over in lines:
             if item != it:
                 continue
             n += 1
-            lid = f"{i}-{n:03d}"
-            md.append(f"- {lid} {text}")
+            lid = f"{i}/{build.ID[it]}/{n}"
+            md.append(f"- [{n}] {text}")
             ci, cd = correct or item, cdoc or i
             x = dict(items[ci]); x.update(over)
             main, sub = build.map_item(x)
@@ -96,8 +96,6 @@ for i, (doc, title) in inst.items():
             rows.append([lid, fname, doc, docs[doc][1], docs[doc][2], build.ID[item], item, judge,
                          cd, build.ID[ci], ci, text, x["nature"], x["check"], x["appr"],
                          main, sub, place, owner, ("項目の既定と違う（" + note + "）") if note else ""])
-    if n > 999:
-        print(f"{i}: 999行を超えた"); sys.exit(1)
     with open(os.path.join(design_dir, fname), "w", encoding="utf-8") as fp:
         fp.write("\n".join(md) + "\n")
 
