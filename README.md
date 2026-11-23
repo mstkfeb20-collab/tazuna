@@ -67,7 +67,7 @@ repo-root/
 | ③ 実装 | 要件とテスト仕様からテストと実装を書く。PR に `対象要件: REQ-xxx` を書く | — | 案件リーダー |
 | ④ マージ | Lint と CI（対象要件にテストがあるか）を通してマージする | — | — |
 
-進み具合は `git fetch` の後に `python3 scripts/design/id_design.py progress` で `ID設計.xlsx` の進捗・網羅状況シートに出る（未着手・執筆中・レビュー中・完了・要転記、要件ごとの未実装・テストあり）。Excel を直したら `id_design.py export` で書き出し（`ID設計.md`）も作り直し、一緒にコミットする。Excel を読むコマンドには `pip install openpyxl` が要る。
+進み具合は `git fetch` の後に `python3 scripts/design/id_design.py progress` で（統合先のブランチと比べて「完了」を決める。既定は GitHub の既定のブランチで、`--base origin/develop` や環境変数 `TAZUNA_BASE_BRANCH` で変えられる） `ID設計.xlsx` の進捗・網羅状況シートに出る（未着手・執筆中・レビュー中・完了・要転記、要件ごとの未実装・テストあり）。Excel を直したら `id_design.py export` で書き出し（`ID設計.md`）も作り直し、一緒にコミットする。Excel を読むコマンドには `pip install openpyxl` が要る。
 
 ## 指南書（テンプレートの外）
 
