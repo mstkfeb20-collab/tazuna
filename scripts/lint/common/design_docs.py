@@ -7,6 +7,7 @@
   2. 見出し「## D-ccsss 設計項目名」の項番と名前がカタログと一致し、その書類の記載項目に入っている
   3. 行「- 行ID 本文」の行IDが「書類実体ID-通し番号3桁」で、ファイル名の書類実体IDと一致し、重複しない
   4. 行がどれかの見出しの下にある
+  6. テスト仕様書（S-26）は冒頭に「> 対象: S-22-nnn」がある。対象を書いた書類は、その処理設計書が同じフォルダにある
   5. --base を付けたとき: base にあった行IDが消えていない（廃止は消さずに「（廃止）」と書く）
   警告だけ出すこと: 書類の「必須」の記載項目に見出しがない
 カタログ: harness/id-design/{items,documents,records}.tsv（_tazuna/id-design/build.py が Excel と同時に作る）
@@ -41,6 +42,8 @@ def load(name):
 FILE_RE = re.compile(r"^(S-\d{2})-(\d{3})_.+\.md$")
 HEAD_RE = re.compile(r"^## (D-\d{5}) (.+?)\s*$")
 LINE_RE = re.compile(r"^- (\S+) (.*)$")
+TARGET_RE = re.compile(r"^> 対象: (.*)$")
+NEED_TARGET = {"S-26"}
 
 
 def parse(text):
@@ -80,6 +83,7 @@ def main():
         records.setdefault(r["書類ID"], {})[r["項番"]] = r
 
     seen = {}
+    insts = {FILE_RE.match(n).group(1) + "-" + FILE_RE.match(n).group(2) for n in os.listdir(folder) if FILE_RE.match(n)}
     for name in sorted(os.listdir(folder)):
         if not name.endswith(".md") or name.lower() == "readme.md":
             continue
@@ -99,7 +103,27 @@ def main():
             continue
         allowed = records.get(doc, {})
         with open(path, encoding="utf-8") as fp:
-            heads, lines = parse(fp.read())
+            body = fp.read()
+        heads, lines = parse(body)
+
+        targets = []
+        for raw in body.splitlines():
+            if raw.startswith("## "):
+                break
+            t = TARGET_RE.match(raw)
+            if t:
+                targets = [s.strip() for s in t.group(1).replace("、", ",").split(",") if s.strip()]
+        if doc in NEED_TARGET and not targets:
+            error(rel, f"{docs[doc]['書類名']}に対象の処理設計書が書かれていません",
+                  "どの機能のテストかが分からないと、要件と結びつけられません",
+                  "最初の見出しより前に「> 対象: S-22-nnn」と書いてください")
+        for tg in targets:
+            if not re.fullmatch(r"S-22-\d{3}", tg):
+                error(rel, f"対象 '{tg}' が処理設計書の書類実体ID（S-22-nnn）ではありません",
+                      "要件と作業一覧は処理設計書のファイルにまとめるためです", "S-22-nnn の形で書いてください")
+            elif tg not in insts:
+                error(rel, f"対象の処理設計書 {tg} が {os.path.relpath(folder, ROOT)} にありません",
+                      "存在しない処理設計書には要件をまとめられません", f"{tg} の処理設計書を置くか、対象を直してください")
 
         for n, iid, label in heads:
             where = f"{rel}:{n}"

@@ -19,7 +19,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(HERE))
 import build  # noqa: E402
 import documents  # noqa: E402
-from source import INSTANCES, L  # noqa: E402
+from source import INSTANCES, L, TARGET  # noqa: E402
 
 items = {x["item"]: x for x in build.I}
 docs = {d[0]: d for d in documents.DOCS}
@@ -73,6 +73,8 @@ for i, (doc, title) in inst.items():
     fname = f"{i}_{re.sub(r'（.*?）', '', title).replace(' ', '')}.md"
     md = [f"# {i} {docs[doc][1]}：{title}", "",
           "> 振り分け評価のインプット。設計項目の見出しの下に、1行に1つの決定事項を書く。振り分け先は書かない。"]
+    if i in TARGET:
+        md += ["", f"> 対象: {TARGET[i]}"]
     order = sorted(dict.fromkeys(x[1] for x in lines), key=lambda it: build.ID[it])
     n = 0
     for it in order:

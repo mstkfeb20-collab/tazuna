@@ -28,6 +28,7 @@ FILE_RE = re.compile(r"^(S-(\d{2}))-(\d{3})_(.+)\.md$")
 HEAD_RE = re.compile(r"^## (D-\d{5}) ")
 LINE_RE = re.compile(r"^- (S-\d{2}-\d{3}-\d{3}) (.*)$")
 OVER_RE = re.compile(r"\s*\{([^{}]*)\}\s*$")
+TARGET_RE = re.compile(r"^> 対象: (S-22-\d{3}(?:[、,] *S-22-\d{3})*)\s*$")
 KEYS = {"性質": "nature", "機械検査": "check", "業務承認": "appr"}
 
 
@@ -50,17 +51,21 @@ def destination(n, c, a):
 
 
 def read_design(folder, items, docs):
-    """[(書類実体, 書類ID, 名前, 区分, [(行ID, 本文, 項番, 属性)])]"""
+    """[(書類実体, 書類ID, 名前, 区分, 対象の処理設計書, [(行ID, 本文, 項番, 属性)])]"""
     out = []
     for name in sorted(os.listdir(folder)):
         m = FILE_RE.match(name)
         if not m:
             continue
         doc, inst, title = m.group(1), f"{m.group(1)}-{m.group(3)}", m.group(4)
-        lines, head = [], None
+        lines, head, target = [], None, None
         with open(os.path.join(folder, name), encoding="utf-8") as fp:
             for raw in fp:
                 raw = raw.rstrip("\n")
+                t = TARGET_RE.match(raw)
+                if t and head is None:
+                    target = re.split(r"[、,] *", t.group(1))[0]
+                    continue
                 h = HEAD_RE.match(raw)
                 if h:
                     head = h.group(1)
@@ -80,7 +85,7 @@ def read_design(folder, items, docs):
                             x[k] = v
                     text = text[:o.start()]
                 lines.append((l.group(1), text, head, x))
-        out.append((inst, doc, title, docs[doc]["区分"] if doc in docs else "", lines))
+        out.append((inst, doc, title, docs[doc]["区分"] if doc in docs else "", target, lines))
     return out
 
 
@@ -100,7 +105,9 @@ def build(folder):
         if header and path not in headers:
             headers[path] = header
 
-    for inst, doc, title, kind, lines in read_design(folder, items, docs):
+    design = read_design(folder, items, docs)
+    stems = {d[0]: f"{d[0]}_{d[2]}" for d in design}
+    for inst, doc, title, kind, target, lines in design:
         common = kind != "機能別設計"
         label = f"{inst} {docs[doc]['書類名'] if doc in docs else doc}：{title}"
         req, cond, basis, cand, know, tasks = [], [], [], [], [], {}
@@ -121,16 +128,20 @@ def build(folder):
                 (cand if common else basis).append(entry)
 
         stem = f"{inst}_{title}"
+        # 対象の処理設計書がある書類（テスト仕様書・画面・ジョブ・IF・帳票）は、要件と作業一覧を対象のファイルにまとめる
+        home = stems.get(target, stem) if target else stem
+        home_title = home.split("_", 1)[1]
         if not common and (req or cond or basis):
-            body = [f"## REQ-{doc[2:]}{inst[-3:]} {title}", "",
+            body = [f"## REQ-{doc[2:]}{inst[-3:]} {title}（{docs[doc]['書類名'] if doc in docs else doc}）" if home != stem
+                    else f"## REQ-{doc[2:]}{inst[-3:]} {title}", "",
                     f"- 背景: ID 設計 {label} で決めた完了条件。",
                     "- 完了条件:"] + [f"  {e}" for e in req]
             if cond:
                 body += ["", f"### 実装するときの条件（{inst}）", ""] + cond
             if basis:
                 body += ["", f"### 型・Lint で守る決まり（{inst}・業務の承認済み）", ""] + basis
-            put(f"docs/requirements/{stem}.md", inst, body,
-                [f"# {title}", "", f"> ID 設計 {label} から転記した要件。設計書を直して転記し直す。目印の中は手で直さない。", ""])
+            put(f"docs/requirements/{home}.md", inst, body,
+                [f"# {home_title}", "", f"> ID 設計 {home.split('_')[0]} とその対象の書類から転記した要件。設計書を直して転記し直す。目印の中は手で直さない。", ""])
         if common and cond:
             put("docs/conventions.md", inst, [f"## 設計から転記した決まり（{label}）", ""] + cond)
         if common and cand:
@@ -149,8 +160,10 @@ def build(folder):
             for k in order:
                 if k in tasks:
                     body += [f"## {names[k]}", ""] + tasks[k] + [""]
-            put(f"docs/tasks/{stem}.md", inst, body[:-1],
-                [f"# 作業一覧：{title}", "", f"> ID 設計 {label} から転記した作業。実装の issue から参照する。", ""])
+            if home != stem:
+                body = [f"## {label}", ""] + [("#" + b if b.startswith("## ") else b) for b in body]
+            put(f"docs/tasks/{home}.md", inst, body[:-1],
+                [f"# 作業一覧：{home_title}", "", f"> ID 設計 {home.split('_')[0]} とその対象の書類から転記した作業。実装の issue から参照する。", ""])
     return files, headers
 
 
