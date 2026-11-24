@@ -42,6 +42,7 @@ repo-root/
 │  ├─ id_design.py               # 書類一覧・ひな形・進捗の作成、Excel の書き出し
 │  ├─ transcribe.py              # 設計書を振り分け先（要件・作業一覧など）へ転記する
 │  └─ catalog.py                 # Excel と書き出しの読み書き
+├─ scripts/report/report.py     # PR 単位・日次のレポート（読むだけ。CI が PR と issue にコメントする）
 ├─ scripts/lint/
 │  ├─ run-all.sh                 # 全チェックを実行
 │  ├─ lib.sh                     # 「内容・理由・修正・参照」を出す共通関数
@@ -69,6 +70,11 @@ repo-root/
 | ④ マージ | Lint と CI（対象要件にテストがあるか）を通してマージする | — | — |
 
 進み具合は `git fetch` の後に `python3 scripts/design/id_design.py progress` で（統合先のブランチと比べて「完了」を決める。既定は GitHub の既定のブランチで、`--base origin/develop` や環境変数 `TAZUNA_BASE_BRANCH` で変えられる） `ID設計.xlsx` の進捗・網羅状況シートに出る（未着手・執筆中・レビュー中・完了・要転記、要件ごとの未実装・テストあり）。Excel を直したら `id_design.py export` で書き出し（`ID設計.md`）も作り直し、一緒にコミットする。Excel を読むコマンドには `pip install openpyxl` が要る。
+
+### 開発期間のレポート
+
+- **PR 単位:** CI が PR にコメントする（`scripts/report/report.py pr`）。対象要件ごとに、テスト仕様の行がテストで確かめられたか（テストに付けた `@Tag("S-26-xxx/D-xxxxx/n")` を数える）、作業一覧の行のうち PR の本文に「未対応: 行ID（理由）」と書いたもの、テストと Lint の結果、保護ファイルに触れていないかを出す。
+- **日次:** `.github/workflows/tazuna-report.yml` が平日の朝に、統合ブランチごとの issue「日次レポート（ブランチ名）」にコメントする。状態が変わった書類、新しく決まった要件、テストありになった要件、コミットを出す。対象はリポジトリの変数 `TAZUNA_REPORT_BRANCHES`（空白区切り、既定は `develop`）。main を商用リリース版にする運用では main を対象にしない。
 
 ### 設計書の書き方の決まり
 
