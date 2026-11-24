@@ -43,6 +43,7 @@ repo-root/
 │  ├─ transcribe.py              # 設計書を振り分け先（要件・作業一覧など）へ転記する
 │  └─ catalog.py                 # Excel と書き出しの読み書き
 ├─ scripts/report/report.py     # PR 単位・日次のレポート（読むだけ。CI が PR と issue にコメントする）
+├─ scripts/report/next.py       # 案内役：次に何をするか（読むだけ。base-navigator スキルが使う）
 ├─ scripts/lint/
 │  ├─ run-all.sh                 # 全チェックを実行
 │  ├─ lib.sh                     # 「内容・理由・修正・参照」を出す共通関数
@@ -70,6 +71,10 @@ repo-root/
 | ④ マージ | Lint と CI（対象要件にテストがあるか）を通してマージする | — | — |
 
 進み具合は `git fetch` の後に `python3 scripts/design/id_design.py progress` で（統合先のブランチと比べて「完了」を決める。既定は GitHub の既定のブランチで、`--base origin/develop` や環境変数 `TAZUNA_BASE_BRANCH` で変えられる） `ID設計.xlsx` の進捗・網羅状況シートに出る（未着手・執筆中・レビュー中・完了・要転記、要件ごとの未実装・テストあり）。Excel を直したら `id_design.py export` で書き出し（`ID設計.md`）も作り直し、一緒にコミットする。Excel を読むコマンドには `pip install openpyxl` が要る。
+
+### 次に何をするか（案内役）
+
+Copilot のチャットで「次は何をすればいい？」と聞くと、スキル `base-navigator` が `python3 scripts/report/next.py` で状態を読み、止まっているものから順に、誰が・何を・どうやって進めるかを案内して一緒に進める。CI の承認待ち、Copilot の質問、レビュー待ちの PR、転記が要る設計書、issue のない要件、必須の見出しが空の設計書、機能一覧と書類一覧のずれを見る。`--issue REQ-xxxxx` で要件を実装する issue の下書きを出す。業務の決定・承認・マージは人がする。
 
 ### 開発期間のレポート
 
