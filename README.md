@@ -43,6 +43,7 @@ repo-root/
 │  ├─ transcribe.py              # 設計書を振り分け先（要件・作業一覧など）へ転記する
 │  └─ catalog.py                 # Excel と書き出しの読み書き
 ├─ scripts/report/report.py     # PR 単位・日次のレポート（読むだけ。CI が PR と issue にコメントする）
+├─ scripts/design/review_pack.py # 設計書レビューの材料（同じ設計項目の行・定義の一覧・決定とテスト仕様）
 ├─ scripts/report/next.py       # 案内役：次に何をするか（読むだけ。base-navigator スキルが使う）
 ├─ scripts/lint/
 │  ├─ run-all.sh                 # 全チェックを実行
