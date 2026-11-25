@@ -43,6 +43,8 @@ repo-root/
 │  ├─ transcribe.py              # 設計書を振り分け先（要件・作業一覧など）へ転記する
 │  └─ catalog.py                 # Excel と書き出しの読み書き
 ├─ scripts/report/report.py     # PR 単位・日次のレポート（読むだけ。CI が PR と issue にコメントする）
+├─ scripts/report/gitlab.py     # GitLab で運用するときの MR・issue の読み書き
+├─ .gitlab-ci.yml               # GitLab で運用するときの CI（.github/workflows と同じことをする）
 ├─ scripts/design/review_pack.py # 設計書レビューの材料（同じ設計項目の行・定義の一覧・決定とテスト仕様）
 ├─ scripts/report/next.py       # 案内役：次に何をするか（読むだけ。base-navigator スキルが使う）
 ├─ scripts/lint/
@@ -125,6 +127,22 @@ mvn -B verify
 ### 5. GitHub の設定
 - main ブランチを保護し、CI（`verify`）の成功と CODEOWNERS のレビューを必須にする。
 - hooks は既定ブランチにある設定だけが Copilot cloud agent に読み込まれる。
+
+### 5'. GitLab で運用するとき
+tazuna は GitLab でもそのまま使える。CI は `.gitlab-ci.yml`、MR のテンプレートは `.gitlab/merge_request_templates/Default.md` にある（GitHub 用のファイルと並べて置いてよい。互いに読まない）。
+
+**エージェントは手元で動かす。** Copilot のクラウドエージェントは GitHub 専用なので、作業する人が VS Code の Copilot（エージェントモード）で issue を実装し、MR を出す。`AGENTS.md`・`.github/skills/`・`.github/hooks/` は、リポジトリの置き場所に関係なく VS Code の Copilot が読む（hooks は VS Code ではプレビュー。各自の PC に bash と jq が要る）。
+
+| 設定 | やること |
+| --- | --- |
+| CI/CD の変数 | `TAZUNA_GITLAB_TOKEN`（プロジェクトのアクセストークン。ロール Reporter 以上・スコープ api・マスクする）。MR の説明の読み取りと、レポートの書き込みに使う。日次レポートの対象を変えるなら `TAZUNA_REPORT_BRANCHES` |
+| 日次レポート | Build → Pipeline schedules に平日の朝の予定を作り、変数 `TAZUNA_DAILY_REPORT=1` を付ける |
+| ブランチの保護 | main（と develop）を保護し、Merge requests の「Pipelines must succeed」を有効にする |
+| 承認者 | `.github/CODEOWNERS` を `.gitlab/CODEOWNERS` に移し、`@your-org/...` を GitLab のグループに置き換える（必須の承認にするには Premium 以上の「Code Owner approval」） |
+| Runner | Docker で動く Runner が要る。社内のレジストリを使うなら、`.gitlab-ci.yml` の `python:3.12`・`maven:3.9-eclipse-temurin-17` を差し替える |
+| 案内役 | 社内の GitLab の URL に「gitlab」が入らないときは、各自が `git config tazuna.platform gitlab` を実行する。`GITLAB_TOKEN` に read_api のトークンを入れると、MR・issue・CI も見る |
+
+GitHub との違い: MR の説明を直してもパイプラインは動き直さない（「対象要件:」を直したら「Run pipeline」を押す）。CI の承認待ちはない。レポートは MR のメモに書き、同じメモを更新し続ける。
 
 ## 型の更新を取り込む
 
