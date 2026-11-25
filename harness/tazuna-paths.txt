@@ -26,3 +26,5 @@ scripts/report/*
 harness/tazuna-paths.txt
 .gitlab-ci.yml
 .gitlab/merge_request_templates/Default.md
+.github/ISSUE_TEMPLATE/bug.md
+.gitlab/issue_templates/*
