@@ -168,6 +168,7 @@ mvn -B verify
 ```
 
 ### 5. GitHub の設定
+要る変数・ツールの一覧は「[必要な環境と設定](#必要な環境と設定)」。
 - main ブランチを保護し、CI（`verify`）の成功と CODEOWNERS のレビューを必須にする。
 - ラベル「不具合」を作る（issue のテンプレート「不具合」が付ける。案内役はこのラベルか、タイトルの【不具合】で見分ける）。
 - hooks は既定ブランチにある設定だけが Copilot cloud agent に読み込まれる。
@@ -188,6 +189,52 @@ tazuna は GitLab でもそのまま使える。CI は `.gitlab-ci.yml`、MR の
 | 案内役 | 社内の GitLab の URL に「gitlab」が入らないときは、各自が `git config tazuna.platform gitlab` を実行する。`GITLAB_TOKEN` に read_api のトークンを入れると、MR・issue・CI も見る |
 
 GitHub との違い: MR の説明を直してもパイプラインは動き直さない（「対象要件:」を直したら「Run pipeline」を押す）。CI の承認待ちはない。レポートは MR のメモに書き、同じメモを更新し続ける。
+
+## 必要な環境と設定
+
+### 手元（人のPC）に要るもの
+
+| もの | 使うところ | 備考 |
+| --- | --- | --- |
+| git・bash | すべて | Windows は Git Bash か WSL |
+| Python 3（CI は 3.12） | Lint・ID 設計・転記・案内役・レポート | |
+| `openpyxl`（`pip install openpyxl`） | Excel を読み書きするコマンド（`id_design.py`） | Lint と案内役は書き出し（`ID設計.md`）を読むので要らない |
+| Java 17・Maven | `mvn -B verify` | `pom.xml` の `maven.compiler.release` と合わせる |
+| `gh`（GitHub CLI）と `gh auth login` | 案内役が PR・issue・CI を見るとき（GitHub） | なければ `next.py --local` で、手元のファイルだけを見る |
+| `jq` | hooks（VS Code の Copilot で動かすとき） | GitHub 上の Copilot では用意されている |
+
+### GitHub の設定
+
+ワークフローは GitHub が渡すトークン（`github.token`）を使うので、シークレットの登録は要らない。
+
+| 種類 | 名前 | 内容 | 既定 |
+| --- | --- | --- | --- |
+| リポジトリの変数（Actions → Variables） | `TAZUNA_REPORT_BRANCHES` | 日次レポートの対象のブランチ（空白区切り） | `develop` |
+| ラベル | `不具合` | issue のテンプレート「不具合」が付け、案内役が見分ける | — |
+| ブランチの保護 | main（と develop） | CI（`verify`）の成功と CODEOWNERS のレビューを必須にする | — |
+
+### GitLab の設定
+
+| 種類 | 名前 | 内容 | 既定 |
+| --- | --- | --- | --- |
+| CI/CD の変数 | `TAZUNA_GITLAB_TOKEN` | プロジェクトのアクセストークン（ロール Reporter 以上・スコープ api）。「マスクする」で登録。MR の説明を読み、レポートを書く | 必須 |
+| CI/CD の変数 | `TAZUNA_REPORT_BRANCHES` | 日次レポートの対象のブランチ（空白区切り） | `develop` |
+| パイプラインのスケジュールの変数 | `TAZUNA_DAILY_REPORT=1` | 平日の朝のスケジュールに付けると、日次レポートだけを動かす | — |
+| ラベル | `不具合` | issue のテンプレート「不具合」が付ける | — |
+
+### 手元で使う環境変数・設定（必要なときだけ）
+
+| 名前 | 使うところ | 内容 |
+| --- | --- | --- |
+| `GITLAB_TOKEN`（または `TAZUNA_GITLAB_TOKEN`） | 案内役（GitLab） | read_api のトークン。入れると MR・issue・CI も見る |
+| `git config tazuna.platform gitlab`（または `TAZUNA_PLATFORM`） | 案内役 | origin の URL に「gitlab」が入らない社内の GitLab で、GitLab だと教える |
+| `TAZUNA_GITLAB_URL` | 案内役・レポート（GitLab） | GitLab の URL が origin のホストと違うとき（ポートやパスがあるときなど）に、`https://gitlab.example.co.jp` の形で指定する |
+| `TAZUNA_GITLAB_CA_FILE` | 案内役（GitLab） | 社内の認証局の証明書のファイル。CI では Runner が渡す `CI_SERVER_TLS_CA_FILE` を読む |
+| `TAZUNA_BASE_BRANCH` | 進捗（`id_design.py progress`） | 「完了」を決めるときに比べるブランチ（例 `origin/develop`）。既定は既定のブランチ |
+| `TAZUNA_REMOTE_URL` | 型の取り込み（`tazuna-update.sh`） | tazuna の取り込み元（社内の GitLab のミラーなど） |
+| `TAZUNA_TEST_DIRS` | Lint・レポート | テストのフォルダ（空白区切り）。既定は `src/test tests` |
+
+`TAZUNA_ROOT`・`TAZUNA_PR_BODY`・`TAZUNA_IS_PR`・`TAZUNA_TARGET_REQS` などは、CI と自己テストがツールに渡すためのもので、設定しなくてよい。
 
 ## 型の更新を取り込む
 
