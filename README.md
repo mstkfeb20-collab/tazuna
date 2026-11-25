@@ -57,11 +57,12 @@ repo-root/
 ├─ src/                          # Java の見本（ツアー予約・ArchUnit）
 └─ harness/
    ├─ GUIDE.md                   # 運用ガイド（人向け）
+   ├─ design-and-transcription.md # 設計書と転記先の違い・1行がどこへ移るか（人向け）
    ├─ rule-log.md                # 違反の記録
    └─ metrics.md                 # 月次の指標
 ```
 
-考え方と運用のルールは [harness/GUIDE.md](harness/GUIDE.md) を参照。
+考え方と運用のルールは [harness/GUIDE.md](harness/GUIDE.md) を参照。設計書に何を書き、要件・テスト仕様・作業一覧にどう渡るかは [harness/design-and-transcription.md](harness/design-and-transcription.md)。
 
 ## ID 設計から実装までの進め方
 
