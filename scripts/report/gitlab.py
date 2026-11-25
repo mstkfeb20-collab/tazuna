@@ -6,12 +6,14 @@
 
 トークンは TAZUNA_GITLAB_TOKEN（なければ GITLAB_TOKEN）。プロジェクトのアクセストークン（ロールは Reporter 以上、
 スコープは api）を、CI/CD の変数に「マスクする」で登録する。CI_JOB_TOKEN では MR へのメモが書けない。
+社内の認証局の証明書を使う GitLab では、CI は Runner が渡す CI_SERVER_TLS_CA_FILE を、手元は TAZUNA_GITLAB_CA_FILE を読む。
 GitLab の場所とプロジェクトは、CI では CI_API_V4_URL・CI_PROJECT_ID、手元では git の origin から決める。
 案内役（next.py）も、ここの api() で MR・issue・パイプラインを読む。
 """
 import json
 import os
 import re
+import ssl
 import subprocess
 import sys
 import urllib.error
@@ -53,13 +55,15 @@ def api(path, method="GET", data=None, root="."):
     if not base or not token():
         return None
     url = f"{base}/{path.replace(':id', urllib.parse.quote(str(proj), safe=''))}"
+    ca = os.environ.get("TAZUNA_GITLAB_CA_FILE") or os.environ.get("CI_SERVER_TLS_CA_FILE")
+    ctx = ssl.create_default_context(cafile=ca) if ca and os.path.isfile(ca) else None
     out = None
     while url:
         body = json.dumps(data).encode() if data is not None else None
         req = urllib.request.Request(url, data=body, method=method,
                                      headers={"PRIVATE-TOKEN": token(), "Content-Type": "application/json"})
         try:
-            with urllib.request.urlopen(req, timeout=60) as r:
+            with urllib.request.urlopen(req, timeout=60, context=ctx) as r:
                 got = json.loads(r.read() or b"null")
                 nxt = r.headers.get("X-Next-Page") if method == "GET" else None
         except (urllib.error.URLError, OSError, ValueError):
