@@ -14,6 +14,8 @@
 #
 # 取り込み元は環境変数 TAZUNA_REMOTE_URL で変えられる（GitLab の社内ミラーなど）。
 set -euo pipefail
+# 日本語のファイル名を引用符で囲ませない（囲まれると一覧のパターンに合わず、取り込まれない）
+export GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.quotePath GIT_CONFIG_VALUE_0=false
 
 ONLY_ID_DESIGN=0
 if [ "${1:-}" = "--id-design" ]; then
@@ -64,28 +66,35 @@ fi
 
 # ID 設計の型の部分（書類の種類・記載項目・設計項目）。機能一覧・書類一覧は案件が書くので比べない
 type_part() { git show "$1:$SNAP" 2>/dev/null | sed -n '/^## 書類の種類/,$p'; }
+project_type_part() { sed -n '/^## 書類の種類/,$p' "$SNAP" 2>/dev/null; }
 
-# 新しいタグの Excel と、前のタグからの型の差分を取り出す。取り出したら 0、型が変わっていなければ 1
+# 新しいタグの Excel と型の差分を取り出す。取り出したら 0、型が変わっていなければ 1
+#   前のタグがあれば、前のタグと新しいタグの型を比べて変わったかを決める（tazuna で変わったところ）
+#   前のタグがなければ（手で取り込んできた案件など）、案件の書き出しと新しいタグの型を比べる
 download_id_design() {
-  local old="$1" diff_file
-  mkdir -p "$OUT"
-  printf '*\n' > "$OUT/.gitignore"   # 取り出したものはコミットしない
-  if [ -n "$old" ] && git rev-parse -q --verify "refs/tags/$old" >/dev/null \
-     && [ "$(type_part "refs/tags/$old")" = "$(type_part "$ref")" ] && [ "$ONLY_ID_DESIGN" -eq 0 ]; then
-    return 1
-  fi
-  git show "$ref:$XLSX" > "$OUT/ID設計-$TAG.xlsx"
-  echo "  - $OUT/ID設計-$TAG.xlsx（$TAG の ID 設計の Excel。機能一覧・書類一覧は見本のまま）"
-  if [ -n "$old" ] && git rev-parse -q --verify "refs/tags/$old" >/dev/null; then
-    diff_file="$OUT/ID設計の型の差分-$old-$TAG.diff"
-    diff -u --label "$old" --label "$TAG" <(type_part "refs/tags/$old") <(type_part "$ref") > "$diff_file" || true
-    if [ -s "$diff_file" ]; then
-      echo "  - $diff_file（$old から $TAG で変わった、書類の種類・記載項目・設計項目の行）"
+  local old="$1" has_old=0 f
+  if [ -n "$old" ] && [ "$old" != "$TAG" ] && git rev-parse -q --verify "refs/tags/$old" >/dev/null; then has_old=1; fi
+  if [ "$ONLY_ID_DESIGN" -eq 0 ]; then
+    if [ "$has_old" -eq 1 ]; then
+      [ "$(type_part "refs/tags/$old")" = "$(type_part "$ref")" ] && return 1
     else
-      rm -f "$diff_file"
-      echo "  - $old と $TAG で型の行は変わっていません"
+      [ "$(project_type_part)" = "$(type_part "$ref")" ] && return 1
     fi
   fi
+  mkdir -p "$OUT"
+  printf '*\n' > "$OUT/.gitignore"   # 取り出したものはコミットしない
+  git show "$ref:$XLSX" > "$OUT/ID設計-$TAG.xlsx"
+  echo "  - $OUT/ID設計-$TAG.xlsx（$TAG の ID 設計の Excel。機能一覧・書類一覧は見本のまま）"
+  if [ "$has_old" -eq 1 ]; then
+    f="$OUT/ID設計の型の差分-$old-$TAG.diff"
+    diff -u --label "$old" --label "$TAG" <(type_part "refs/tags/$old") <(type_part "$ref") > "$f" || true
+    if [ -s "$f" ]; then echo "  - $f（tazuna で $old から $TAG までに変わった、書類の種類・記載項目・設計項目の行）"
+    else rm -f "$f"; echo "  - tazuna では $old から $TAG までに型の行は変わっていません"; fi
+  fi
+  f="$OUT/ID設計の型の差分-案件-$TAG.diff"
+  diff -u --label "案件の $SNAP" --label "$TAG" <(project_type_part) <(type_part "$ref") > "$f" || true
+  if [ -s "$f" ]; then echo "  - $f（案件の Excel と $TAG の型の違い。案件で変えた「状態」「記載」の行も出る）"
+  else rm -f "$f"; echo "  - 案件の Excel の型の行は $TAG と同じです"; fi
   return 0
 }
 
@@ -145,7 +154,7 @@ if download_id_design "$old_tag"; then
   id_changed=1
   echo "  型（書類の種類・記載項目・設計項目）が変わっています。差分を見て、必要な行を案件の Excel に手で反映してください。"
 else
-  echo "  $old_tag と $TAG で型（書類の種類・記載項目・設計項目）は変わっていません。"
+  echo "  型（書類の種類・記載項目・設計項目）は変わっていません。"
 fi
 echo
 echo "次の手順:"
