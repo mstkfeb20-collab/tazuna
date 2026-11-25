@@ -301,12 +301,13 @@ def issue_draft(req):
         "1. `AGENTS.md`", f"2. `{f}`（完了条件・テスト仕様・実装するときの条件）",
         *[f"{k}. `{t}`（作業一覧）" for k, t in enumerate(mine, 3)],
         *([f"{3 + len(mine)}. " + "・".join(f"`{s}`" for s in schema) + "（テーブル・列の意味と制約は DDL が正）"] if schema else []),
-        f"{4 + len(mine)}. 必要に応じて `docs/design/` の元の設計書、`docs/domain/`、`docs/conventions.md`", "",
+        f"{4 + len(mine)}. 必要に応じて `docs/domain/`、`docs/conventions.md`。`docs/design/` の設計書は背景として読んでよいが、実装とテストの根拠にはしない（下の決まりごと）", "",
         "## 範囲", "", "- 範囲内: （作業一覧のうち、この issue でやるもの）", "- 範囲外: （やらないもの）",
         "- 作業一覧・テスト仕様の行のうち対応しないものは、PR の本文に「未対応: 行ID（理由）」で書く。", "",
         "## 決まりごと", "",
         "- `docs/requirements/`・`docs/design/ID設計.*`・`docs/domain/invariants.md`・`base-*` スキル・共通 Lint・hooks は編集できない。変えたいときは PR の説明に提案を書く。",
         "- 設計書に書かれていないことは推測で埋めず、PR に質問として書く。",
+        "- 実装とテストの根拠は、上の要件・作業一覧・DDL と、ID で指された設計書の行だけにする。転記先にない設計書の行を根拠にしたときは、PR の本文に「設計書から: 行ID（理由）」の行で書く。",
         "- PR には実行したコマンドと結果を貼る。", ""])
 
 
