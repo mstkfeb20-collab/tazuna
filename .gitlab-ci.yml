@@ -58,6 +58,7 @@ harness:
     - bash scripts/lint/tests/test-design-docs.sh
     - bash scripts/lint/tests/test-design-transcribe.sh
     - bash scripts/lint/tests/test-review-record.sh
+    - bash scripts/lint/tests/test-mock-scope.sh
     - bash scripts/lint/tests/test-id-design.sh
     - bash scripts/lint/tests/test-ddl-comments.sh
     - bash scripts/lint/tests/test-requirement-traceability.sh
@@ -82,10 +83,10 @@ build:
     key: maven
     paths: [.m2/repository]
   script:
-    - mvn -B verify   # 単体テスト・ArchUnit
+    - mvn -B verify   # 単体テスト・ArchUnit・分岐カバレッジ・ミューテーション・セキュリティの静的解析
   artifacts:
     when: always   # テストが落ちても結果を残す（MR レポートが読む）
-    paths: [target/surefire-reports/]
+    paths: [target/surefire-reports/, target/site/jacoco/jacoco.xml, target/pit-reports/mutations.xml, target/spotbugsXml.xml]
     expire_in: 7 days
 
 mr-report:
@@ -106,7 +107,7 @@ mr-report:
     - |
       LINT=$(cat lint-result.txt 2>/dev/null || echo ng)
       python3 scripts/report/report.py pr --base "origin/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME" --body-file pr-body.md \
-        --surefire target/surefire-reports --lint "$LINT" > report.md
+        --surefire target/surefire-reports --quality target --lint "$LINT" > report.md
       cat report.md
       python3 scripts/report/gitlab.py mr-note report.md
 
