@@ -1,0 +1,21 @@
+# tazuna 本体だけで動く: タグを打ったら、harness/tazuna-version がタグと同じかを確かめる。
+# 案件（_tazuna/ がないリポジトリ）では何もしない。
+name: タグとバージョンの確認
+on:
+  push:
+    tags: ["v*"]
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: harness/tazuna-version がタグと同じか
+        run: |
+          [ -d _tazuna ] || { echo "案件のリポジトリなので確かめない"; exit 0; }
+          v=$(cat harness/tazuna-version)
+          if [ "$v" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::harness/tazuna-version が $v のまま、タグ $GITHUB_REF_NAME を打っています。新しい案件がこのタグから始めると、使っている型が $v と記録され、次の取り込みで差分の起点がずれます。"
+            echo "直し方: _tazuna/release.sh $GITHUB_REF_NAME を使って打ち直す（タグを付け替える: git tag -f $GITHUB_REF_NAME <直したコミット> && git push -f origin $GITHUB_REF_NAME）"
+            exit 1
+          fi
+          echo "OK: harness/tazuna-version = $v"
