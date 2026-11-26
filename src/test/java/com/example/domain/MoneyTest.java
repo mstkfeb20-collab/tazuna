@@ -28,4 +28,20 @@ class MoneyTest {
     void noNegative() {
         assertThrows(IllegalArgumentException.class, () -> Money.yen(-1));
     }
+
+    @Test
+    @DisplayName("率は0〜100%。範囲の端は計算でき、外は計算しない")
+    void percentRange() {
+        assertEquals(Money.zero(), Money.yen(1_000).percent(0));
+        assertEquals(Money.yen(1_000), Money.yen(1_000).percent(100));
+        assertThrows(IllegalArgumentException.class, () -> Money.yen(1_000).percent(-1));
+        assertThrows(IllegalArgumentException.class, () -> Money.yen(1_000).percent(101));
+    }
+
+    @Test
+    @DisplayName("数量を掛けられるのは0以上")
+    void timesRange() {
+        assertEquals(Money.zero(), Money.yen(1_000).times(0));
+        assertThrows(IllegalArgumentException.class, () -> Money.yen(1_000).times(-1));
+    }
 }
