@@ -3,7 +3,8 @@ name: verify
 on:
   pull_request:
     # edited: PR の本文（対象要件）を直したときもやり直す
-    types: [opened, synchronize, reopened, edited]
+    # ready_for_review: ドラフトを外したとき（設計書の点検の確認を、警告から止めるに切り替える）
+    types: [opened, synchronize, reopened, edited, ready_for_review]
   push:
     # 統合に使うブランチ。案件の運用（develop・release など）に合わせて足す
     branches: [main, master, develop, 'release/**']
@@ -28,6 +29,7 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
           EVENT_BODY: ${{ github.event.pull_request.body }}
           TAZUNA_IS_PR: ${{ github.event_name == 'pull_request' && '1' || '' }}
+          TAZUNA_PR_DRAFT: ${{ github.event.pull_request.draft && '1' || '' }}
           DESIGN_BASE_REF: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || '' }}
         run: |
           # PR の本文は、起動した時点のものではなく今のものを読む（承認待ちの後に流したとき、エージェントが本文を書き換えた後など）
@@ -52,6 +54,8 @@ jobs:
         run: bash scripts/lint/tests/test-report.sh
       - name: 案内役の自己テスト
         run: bash scripts/lint/tests/test-next.sh
+      - name: 設計書の点検の記録の自己テスト
+        run: bash scripts/lint/tests/test-review-record.sh
       - name: 設計書レビューの材料の自己テスト
         run: bash scripts/lint/tests/test-review-pack.sh
       - name: GitLab の道具の自己テスト
