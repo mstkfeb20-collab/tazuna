@@ -60,8 +60,9 @@ repo-root/
 │  └─ domain/                    # 業務固有チェック
 ├─ src/test/                     # 要件IDに紐づくテスト
 └─ harness/
+   ├─ quality.md                 # 品質の考え方（工程ごとに何を見て・測り・判断するか）
    ├─ rule-log.md                # 違反の記録
-   └─ metrics.md                 # 月次の指標
+   └─ metrics.md                 # 品質の記録・月次の指標
 ```
 
 ### 置き場所の判断基準
@@ -194,7 +195,8 @@ ERROR [INV-001] src/main/java/com/example/domain/Bad.java:2
 | AGENTS.md | [`AGENTS.md`](../AGENTS.md) |
 | PRテンプレート | [`.github/pull_request_template.md`](../.github/pull_request_template.md) |
 | 違反の記録 | [`harness/rule-log.md`](../harness/rule-log.md) |
-| 月次の指標 | [`harness/metrics.md`](../harness/metrics.md) |
+| 品質の考え方 | [`harness/quality.md`](../harness/quality.md) |
+| 品質の記録・月次の指標 | [`harness/metrics.md`](../harness/metrics.md) |
 | 不変条件 | [`docs/domain/invariants.md`](../docs/domain/invariants.md) |
 | 業務固有Lintの見本 | [`scripts/lint/domain/java-money-no-float.sh`](../scripts/lint/domain/java-money-no-float.sh) |
 
