@@ -1,0 +1,61 @@
+# 設計書の変更が統合先のブランチに入ったら、転記して、転記の PR を出す（開いていれば更新する）。
+# 転記の PR も人が確かめてマージする。動かなかったときは、手元で python3 scripts/design/transcribe.py を実行して PR を出せばよい。
+#
+# 準備（案件リーダーが一度だけ）
+#   - Settings → Actions → General → 「Allow GitHub Actions to create and approve pull requests」をオンにする
+#   - 任意: Secrets に TAZUNA_BOT_TOKEN（GitHub App のトークンか、contents・pull-requests に書ける fine-grained トークン）。
+#     ないときは標準の権限（GITHUB_TOKEN）で PR を作るが、GitHub の決まりで、その PR の CI は動かない
+#     （PR を一度閉じて開き直すと動く。PR の本文にも書く）
+name: 転記
+
+on:
+  push:
+    branches: [main, master, develop, 'release/**']   # verify.yml と同じ統合先
+    paths: ['docs/design/**']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: tazuna-transcribe-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  transcribe:
+    name: 転記して PR を出す
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.TAZUNA_BOT_TOKEN || github.token }}
+      - name: Excel を読む準備（ID 設計の原本）
+        run: pip install openpyxl
+      - name: 転記
+        run: python3 scripts/design/transcribe.py
+      - name: 転記の PR を出す（転記で変わるものがあるときだけ）
+        env:
+          GH_TOKEN: ${{ secrets.TAZUNA_BOT_TOKEN || github.token }}
+          HAS_BOT: ${{ secrets.TAZUNA_BOT_TOKEN != '' && '1' || '' }}
+          BASE: ${{ github.ref_name }}
+          RANGE: ${{ github.event.before }}..${{ github.sha }}
+        run: |
+          if [ -z "$(git status --porcelain --untracked-files=all)" ]; then
+            echo "転記で変わるものはありません"; exit 0
+          fi
+          python3 scripts/design/transcribe_pr.py --base "$BASE" --range "$RANGE" ${HAS_BOT:+--no-ci-note} > "$RUNNER_TEMP/body.md"
+          br="tazuna/transcribe-${BASE//\//-}"
+          git config user.name "tazuna"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -q -B "$br"
+          git add -A
+          git commit -q -m "転記（$BASE の設計書の変更から自動で作成）"
+          git push -q -f origin "$br"
+          n=$(gh pr list --head "$br" --base "$BASE" --state open --json number --jq '.[0].number // empty')
+          if [ -n "$n" ]; then
+            gh pr edit "$n" --body-file "$RUNNER_TEMP/body.md" && echo "転記の PR #$n を更新しました"
+          else
+            gh pr create --base "$BASE" --head "$br" --title "転記: $BASE の設計書の変更" --body-file "$RUNNER_TEMP/body.md"
+          fi

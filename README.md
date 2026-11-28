@@ -219,19 +219,22 @@ GitHub との違い: MR の説明を直してもパイプラインは動き直�
 
 ### GitHub の設定
 
-ワークフローは GitHub が渡すトークン（`github.token`）を使うので、シークレットの登録は要らない。
+ワークフローは GitHub が渡すトークン（`github.token`）を使うので、シークレットの登録は要らない（転記の PR の CI を自動で動かしたいときだけ、下の `TAZUNA_BOT_TOKEN` を登録する）。
 
 | 種類 | 名前 | 内容 | 既定 |
 | --- | --- | --- | --- |
 | リポジトリの変数（Actions → Variables） | `TAZUNA_REPORT_BRANCHES` | 日次レポートの対象のブランチ（空白区切り） | `develop` |
 | ラベル | `不具合` | issue のテンプレート「不具合」が付け、案内役が見分ける | — |
+| ラベル | `業務の決定` | 設計書の点検の質問から作る issue に付ける | — |
 | ブランチの保護 | main（と develop） | CI（`verify`）の成功と CODEOWNERS のレビューを必須にする | — |
+| Actions の設定（Settings → Actions → General） | Allow GitHub Actions to create and approve pull requests | 設計書の変更がマージされたら、転記のワークフローが転記の PR を出す | オフ（オンにする） |
+| シークレット（任意） | `TAZUNA_BOT_TOKEN` | GitHub App のトークンか、contents・pull-requests に書ける fine-grained トークン。ないと、標準の権限で作った転記の PR の CI が動かない（閉じて開き直すと動く） | なし |
 
 ### GitLab の設定
 
 | 種類 | 名前 | 内容 | 既定 |
 | --- | --- | --- | --- |
-| CI/CD の変数 | `TAZUNA_GITLAB_TOKEN` | プロジェクトのアクセストークン（ロール Reporter 以上・スコープ api）。「マスクする」で登録。MR の説明を読み、レポートを書く | 必須 |
+| CI/CD の変数 | `TAZUNA_GITLAB_TOKEN` | プロジェクトのアクセストークン（ロール Reporter 以上・スコープ api）。「マスクする」で登録。MR の説明を読み、レポートを書く。**転記の MR を自動で出すときはロール Developer 以上**（転記用のブランチ `tazuna/transcribe-*` は保護しない） | 必須 |
 | CI/CD の変数 | `TAZUNA_REPORT_BRANCHES` | 日次レポートの対象のブランチ（空白区切り） | `develop` |
 | パイプラインのスケジュールの変数 | `TAZUNA_DAILY_REPORT=1` | 平日の朝のスケジュールに付けると、日次レポートだけを動かす | — |
 | ラベル | `不具合` | issue のテンプレート「不具合」が付ける | — |

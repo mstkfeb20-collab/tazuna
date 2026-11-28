@@ -3,9 +3,10 @@
     python3 scripts/report/gitlab.py mr-body                      # 今の MR の説明を出す（CI の中で）
     python3 scripts/report/gitlab.py mr-note report.md            # MR にレポートを書く（同じメモを更新する）
     python3 scripts/report/gitlab.py issue-note "日次レポート（develop）" report.md   # その題の issue にメモを足す
+    python3 scripts/report/gitlab.py transcribe-mr main body.md   # 転記の結果（作業ツリーの変更）をコミットし、転記の MR を出す
 
 トークンは TAZUNA_GITLAB_TOKEN（なければ GITLAB_TOKEN）。プロジェクトのアクセストークン（ロールは Reporter 以上、
-スコープは api）を、CI/CD の変数に「マスクする」で登録する。CI_JOB_TOKEN では MR へのメモが書けない。
+スコープは api。転記の MR を自動で出すときは Developer 以上）を、CI/CD の変数に「マスクする」で登録する。CI_JOB_TOKEN では MR へのメモが書けない。
 社内の認証局の証明書を使う GitLab では、CI は Runner が渡す CI_SERVER_TLS_CA_FILE を、手元は TAZUNA_GITLAB_CA_FILE を読む。
 GitLab の場所とプロジェクトは、CI では CI_API_V4_URL・CI_PROJECT_ID、手元では git の origin から決める。
 案内役（next.py）も、ここの api() で MR・issue・パイプラインを読む。
@@ -120,6 +121,44 @@ def issue_note(title, text, about=""):
     return None if ok is not None else "issue にメモを書けませんでした"
 
 
+def transcribe_mr(base, text, root="."):
+    """作業ツリーの変更（転記の結果）を、base から作り直したブランチ tazuna/transcribe-<base> に1コミットで置き、
+    転記の MR を出す（開いていれば説明を更新する）。git push は使わず API でコミットする"""
+    out = subprocess.run(["git", "-C", root, "-c", "core.quotepath=false", "status", "--porcelain", "--untracked-files=all"],
+                         capture_output=True, text=True).stdout
+    actions = []
+    for line in out.splitlines():
+        st, path = line[:2], line[3:].strip().strip('"')
+        if " -> " in path:
+            path = path.split(" -> ", 1)[1]
+        if "D" in st:
+            actions.append({"action": "delete", "file_path": path})
+        else:
+            with open(os.path.join(root, path), encoding="utf-8") as fp:
+                actions.append({"action": "create" if st == "??" or "A" in st else "update",
+                                "file_path": path, "content": fp.read()})
+    if not actions:
+        print("転記で変わるものはありません")
+        return None
+    br = "tazuna/transcribe-" + base.replace("/", "-")
+    got = api("projects/:id/repository/commits", "POST", {
+        "branch": br, "start_branch": base, "force": True,
+        "commit_message": f"転記（{base} の設計書の変更から自動で作成）", "actions": actions}, root=root)
+    if not isinstance(got, dict):
+        return "転記のブランチにコミットできませんでした（トークンのロールが Developer 以上か確かめてください）"
+    q = urllib.parse.quote
+    mrs = api(f"projects/:id/merge_requests?state=opened&source_branch={q(br, safe='')}&target_branch={q(base, safe='')}", root=root)
+    if mrs:
+        ok = api(f"projects/:id/merge_requests/{mrs[0]['iid']}", "PUT", {"description": text}, root=root)
+        print(f"転記の MR !{mrs[0]['iid']} を更新しました")
+    else:
+        ok = api("projects/:id/merge_requests", "POST", {"source_branch": br, "target_branch": base,
+                                                          "title": f"転記: {base} の設計書の変更", "description": text,
+                                                          "remove_source_branch": True}, root=root)
+        print("転記の MR を出しました")
+    return None if ok is not None else "転記の MR を出せませんでした"
+
+
 def main():
     if len(sys.argv) < 2:
         print(__doc__, file=sys.stderr)
@@ -130,6 +169,12 @@ def main():
         return 0
     if cmd == "mr-note" and len(sys.argv) == 3:
         err = mr_note(open(sys.argv[2], encoding="utf-8").read())
+    elif cmd == "transcribe-mr" and len(sys.argv) == 4:
+        err = transcribe_mr(sys.argv[2], open(sys.argv[3], encoding="utf-8").read(), os.environ.get("TAZUNA_ROOT", "."))
+        if err:  # 転記の MR を出せなかったことは、ジョブを失敗にして気づけるようにする（手元で転記すれば代えられる）
+            print("エラー: " + err + "。手元で python3 scripts/design/transcribe.py を実行して MR を出してください", file=sys.stderr)
+            return 1
+        return 0
     elif cmd == "issue-note" and len(sys.argv) in (4, 5):
         err = issue_note(sys.argv[2], open(sys.argv[3], encoding="utf-8").read(), sys.argv[4] if len(sys.argv) == 5 else "")
     else:

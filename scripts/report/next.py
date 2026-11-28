@@ -228,7 +228,7 @@ def review_todos(prs):
 INST_RE_FILE = re.compile(r"^docs/design/(?:.*/)?S-\d{2}-\d{3}.*\.md$")
 
 
-def local_state(busy=None):
+def local_state(busy=None, busy_prs=None):
     """busy: 開いている PR で書いている最中の書類 {書類実体ID: 表示}（--local では空）"""
     busy = busy or {}
     todos, facts = [], {}
@@ -318,10 +318,16 @@ def local_state(busy=None):
     import transcribe  # noqa: E402
     st = transcribe.status(DESIGN, ROOT)
     stale = sorted(i for i, s in st.items() if s in ("要転記", "未転記"))
-    if stale:
+    transcribing = [p["ref"] for p in (busy_prs or []) if p.get("ref") and str(p.get("branch", "")).startswith("tazuna/transcribe")]
+    if stale and transcribing:
+        todos.append(Todo(40, "社員", f"転記の {'、'.join(transcribing)} を確かめてマージする",
+                          "設計書の変更を CI が自動で転記しました: " + "、".join(stale[:8]),
+                          "機能の横断面として、要件・テスト仕様に過不足がないかを見てマージする。設計の誤りは設計書を直す（転記の PR は自動で更新される）"))
+    elif stale:
         todos.append(Todo(40, "社員", f"設計書を転記する（{len(stale)} 件）",
                           "設計書が変わったのに、要件・テスト仕様・作業一覧に反映されていません: " + "、".join(stale[:8]),
-                          "設計書の PR がマージされてから python3 scripts/design/transcribe.py を実行し、転記の PR を出す"))
+                          "設計書の PR がマージされると CI が転記の PR を自動で出す（転記のワークフロー）。出ていなければ、"
+                          "手元で python3 scripts/design/transcribe.py を実行し、転記の PR を出す"))
     bad = transcribe.hand_edits(DESIGN, ROOT)
     if bad:
         todos.append(Todo(5, "社員", "転記先が手で直されている",
@@ -539,7 +545,7 @@ def main():
         for inst, prs in changes.by_document(opened).items():
             st, shown = changes.state_of(prs)
             busy[inst] = f"{st}（{shown}）"
-    todos, facts, cat = local_state(busy)
+    todos, facts, cat = local_state(busy, opened)
     rtodos, facts["review_blocked"] = review_todos(opened)  # 点検が片付いていない PR は、レビューを案内しない
     todos = setup_state() + todos + rtodos
     gfacts = {}

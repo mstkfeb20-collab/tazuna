@@ -83,5 +83,24 @@ want=$(sed -e 's/ PR\([（ ]\)/ MR\1/g; s/PR の本文/MR の説明/g' "$ROOT/.g
 if [ "$want" = "$(cat "$ROOT/.gitlab/merge_request_templates/Default.md")" ]; then pass=$((pass + 1))
 else fail=$((fail + 1)); echo "NG: .gitlab/merge_request_templates/Default.md が PR のテンプレートとずれている（PR のテンプレートから作り直す）"; fi
 
+# 転記の MR: 作業ツリーの変更を API で1コミットにし、MR を出す（開いていれば更新）
+t="$w/tr"; mkdir -p "$t/docs/requirements"; git -C "$t" init -q
+echo a > "$t/docs/requirements/A.md"; git -C "$t" add -A; git -C "$t" -c user.name=t -c user.email=t@t commit -qm init
+echo b > "$t/docs/requirements/A.md"; echo c > "$t/docs/requirements/S-22-002_予約取消.md"; echo "本文" > "$w/body.md"
+: > "$w/writes"
+out=$(cd "$t" && TAZUNA_ROOT="$t" python3 "$ROOT/scripts/report/gitlab.py" transcribe-mr release/1 "$w/body.md" 2>&1); rc=$?
+check "転記の MR を出せた" "転記の MR" "$out"
+[ $rc -eq 0 ] && pass=$((pass + 1)) || { fail=$((fail + 1)); echo "NG: 出せたら 0 で終わる（$rc）"; }
+commit=$(grep '"repository/commits"\|/repository/commits' "$w/writes")
+check "base から作り直すブランチにコミットする" '"branch": "tazuna/transcribe-release-1", "start_branch": "release/1", "force": true' "$commit"
+check "変えたファイルは update" '{"action": "update", "file_path": "docs/requirements/A.md", "content": "b\n"}' "$commit"
+check "新しいファイルは create（日本語のファイル名もそのまま）" '{"action": "create", "file_path": "docs/requirements/S-22-002_予約取消.md"' "$commit"
+git -C "$t" stash -q -u
+out=$(cd "$t" && TAZUNA_ROOT="$t" python3 "$ROOT/scripts/report/gitlab.py" transcribe-mr main "$w/body.md" 2>&1)
+check "変わるものがなければ何もしない" "転記で変わるものはありません" "$out"
+git -C "$t" stash pop -q
+out=$(cd "$t" && TAZUNA_GITLAB_TOKEN= GITLAB_TOKEN= TAZUNA_ROOT="$t" python3 "$ROOT/scripts/report/gitlab.py" transcribe-mr main "$w/body.md" 2>&1); rc=$?
+[ $rc -ne 0 ] && grep -q "手元で python3 scripts/design/transcribe.py" <<<"$out" && pass=$((pass + 1)) || { fail=$((fail + 1)); echo "NG: 出せなければジョブを失敗にし、手元での転記を案内する（$rc）: $out"; }
+
 echo "gitlab: ${pass} 件成功 / ${fail} 件失敗"
 [ "$fail" -eq 0 ]

@@ -28,6 +28,7 @@ scripts/lint/tests/*
 scripts/design/*
 scripts/report/*
 .github/workflows/tazuna-report.yml
+.github/workflows/tazuna-transcribe.yml
 harness/tazuna-paths.txt
 .gitlab-ci.yml
 .gitlab/merge_request_templates/Default.md

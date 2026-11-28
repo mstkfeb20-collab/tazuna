@@ -66,7 +66,8 @@ def open_changes(root):
                 diffs = (gitlab.api(f"projects/:id/merge_requests/{iid}/changes", root=root) or {}).get("changes", [])
             out.append({"ref": f"!{iid}", "draft": bool(m.get("draft") or m.get("work_in_progress")),
                         "author": (m.get("author") or {}).get("username", ""), "title": m.get("title", ""),
-                        "files": [d.get("new_path") or d.get("old_path") for d in diffs], "sha": m.get("sha", "")})
+                        "files": [d.get("new_path") or d.get("old_path") for d in diffs], "sha": m.get("sha", ""),
+                        "branch": m.get("source_branch", "")})
         return out
     prs = gh("repos/{owner}/{repo}/pulls?state=open&per_page=100", root)
     if prs is None:
@@ -76,7 +77,8 @@ def open_changes(root):
         files = gh(f"repos/{{owner}}/{{repo}}/pulls/{p['number']}/files?per_page=100", root) or []
         out.append({"ref": f"#{p['number']}", "draft": bool(p.get("draft")),
                     "author": (p.get("user") or {}).get("login", ""), "title": p.get("title", ""),
-                    "files": [f.get("filename") for f in files], "sha": (p.get("head") or {}).get("sha", "")})
+                    "files": [f.get("filename") for f in files], "sha": (p.get("head") or {}).get("sha", ""),
+                    "branch": (p.get("head") or {}).get("ref", "")})
     return out
 
 

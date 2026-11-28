@@ -56,6 +56,8 @@ jobs:
         run: bash scripts/lint/tests/test-next.sh
       - name: Lint の自己テスト（モックの範囲）
         run: bash scripts/lint/tests/test-mock-scope.sh
+      - name: 転記の PR の本文の自己テスト
+        run: bash scripts/lint/tests/test-transcribe-pr.sh
       - name: 設計書の点検の記録の自己テスト
         run: bash scripts/lint/tests/test-review-record.sh
       - name: 設計書レビューの材料の自己テスト

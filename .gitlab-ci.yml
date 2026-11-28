@@ -69,6 +69,7 @@ harness:
     - bash scripts/lint/tests/test-design-docs.sh
     - bash scripts/lint/tests/test-design-transcribe.sh
     - bash scripts/lint/tests/test-review-record.sh
+    - bash scripts/lint/tests/test-transcribe-pr.sh
     - bash scripts/lint/tests/test-mock-scope.sh
     - bash scripts/lint/tests/test-id-design.sh
     - bash scripts/lint/tests/test-ddl-comments.sh
@@ -121,6 +122,25 @@ mr-report:
         --surefire target/surefire-reports --quality target --lint "$LINT" > report.md
       cat report.md
       python3 scripts/report/gitlab.py mr-note report.md
+
+# 設計書の変更が統合先のブランチに入ったら、転記して、転記の MR を出す（開いていれば更新する）。
+# TAZUNA_GITLAB_TOKEN のロールが Developer 以上のときに動く。動かなかったときは、手元で transcribe.py を実行して MR を出す。
+# 手で動かすときは、Build → Pipelines → Run pipeline で変数 TAZUNA_TRANSCRIBE=1 を付ける
+transcribe:
+  stage: report
+  image: python:3.12
+  rules:
+    - if: $TAZUNA_DAILY_REPORT == "1"
+      when: never
+    - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH =~ /^(main|master|develop|release\/.*)$/
+      changes: [docs/design/**/*]
+    - if: $CI_PIPELINE_SOURCE == "web" && $TAZUNA_TRANSCRIBE == "1"
+  before_script:
+    - pip install -q openpyxl
+  script:
+    - python3 scripts/design/transcribe.py
+    - python3 scripts/design/transcribe_pr.py --base "$CI_COMMIT_BRANCH" --range "$CI_COMMIT_BEFORE_SHA..$CI_COMMIT_SHA" --no-ci-note > body.md
+    - python3 scripts/report/gitlab.py transcribe-mr "$CI_COMMIT_BRANCH" body.md
 
 daily-report:
   stage: report
