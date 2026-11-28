@@ -9,6 +9,8 @@
   - 止める種別（食い違い・未定義・場合分けの抜け・書式の解釈）の行は、直して点検し直すか、「扱い」に「残す: 理由」がある
   - 質問の行は、「扱い」に「issue: #番号」がある（業務の決定は issue で追う）
   - 業務承認が要の見出しに「（案）」の行が残っていない（AI が仮に置いた業務の判断を、人が確かめて「（案）」を外してある）
+    ただし、PR の本文に「設計の段階: 土台」の行がある PR（複数人で分担する前に、全体のドラフトを土台として入れる PR）では、
+    （案）は警告にする（（案）は転記されても未決になり、実装されない）。点検の記録の確認はそのまま
 
 記録の形（TSV。1行目と2行目は stamp が書く）:
   # 点検した設計書の指紋: <指紋>
@@ -19,6 +21,7 @@
 import argparse
 import hashlib
 import os
+import re
 import subprocess
 import sys
 
@@ -133,7 +136,12 @@ def check(root, design):
                          "記録は、点検したときの設計書に対するものです。直した後の設計書は点検されていません",
                          "スキル base-design-review で点検し直し、記録を書き直して stamp を実行してください"
                          "（前回の「扱い」は、同じ種別・根拠の行には引き継ぐ）"))
-    for lid, item, text in pending_proposals(design):
+    foundation = bool(re.search(r"^[ \t>]*設計の段階[:：][ \t]*土台", os.environ.get("TAZUNA_PR_BODY", ""), re.M))
+    props = pending_proposals(design)
+    if foundation and props:
+        print(f"WARN  [COMMON-011] 土台の PR なので、業務の見出しの（案）{len(props)} 行は止めない（分担して仕上げるときに確かめる）", file=sys.stderr)
+        props = []
+    for lid, item, text in props:
         problems.append((f"{lid}（{item}）（案）{text}",
                          "「（案）」は AI が仮に置いた業務の判断で、まだ人が確かめていません。業務承認が要る見出しは、人が決めます",
                          "業務として正しければ「（案）」を外す。違えば書き直すか、決まっていなければ行を消して質問（issue）にする"))

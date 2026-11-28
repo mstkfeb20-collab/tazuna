@@ -43,6 +43,9 @@ TAZUNA_ROOT="$w" python3 "$PY" stamp >/dev/null
 check ng "業務承認が要の見出しに（案）が残っていれば止める" $PR
 echo "$out" | grep -q 'S-22-001/D-03002/2（相関チェック）（案）大人人数は9人まで' && ok || ng "（案）の行を示す: $out"
 check ok "ドラフトでは（案）が残っていても止めない" $PR TAZUNA_PR_DRAFT=1
+check ok "「設計の段階: 土台」の PR では（案）を止めない" $PR "TAZUNA_PR_BODY=対象要件: なし
+設計の段階: 土台"
+echo "$out" | grep -q "土台の PR なので" && ok || ng "土台の PR では（案）を警告として伝える"
 sed -i 's/^- \[2\] （案）/- [2] /' "$w/docs/design/S-22-001_予約登録.md"; TAZUNA_ROOT="$w" python3 "$PY" stamp >/dev/null
 check ok "（案）を外せば通す" $PR
 rm -rf "$w"
