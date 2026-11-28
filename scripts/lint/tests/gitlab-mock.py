@@ -14,6 +14,7 @@ MRS = [
     {"iid": 3, "title": "質問のある MR"},
     {"iid": 4, "title": "通った MR"},
     {"iid": 5, "title": "パイプラインのない MR"},
+    {"iid": 6, "title": "ドラフトを外した MR"},
 ]
 ONE = {
     1: {"draft": True, "head_pipeline": {"status": "success"}, "description": ""},
@@ -22,7 +23,9 @@ ONE = {
         "description": "対象要件: REQ-22001\n\n## レビュアーに判断してほしいこと\n- 取消料の端数は？\n- 返金の期限は？（回答済み）\n"},
     4: {"draft": False, "head_pipeline": {"status": "success"}, "description": "対象要件: REQ-22001\nCloses #7"},
     5: {"draft": False, "head_pipeline": None, "description": ""},
+    6: {"draft": False, "head_pipeline": {"id": 66, "status": "success"}, "description": "対象要件: なし"},
 }
+JOBS = {66: [{"name": "harness"}, {"name": "draft-mr"}]}  # ドラフトのときに動いたパイプライン
 DIFFS = {  # MR が触っているファイル（!1 は下書きで設計書を書いている、!3 は設計書のレビュー中）
     1: ["docs/design/S-22-001_予約取消.md"],
     3: ["docs/design/S-22-002_取消一覧.md", "src/main/java/A.java"],
@@ -62,6 +65,8 @@ class H(BaseHTTPRequestHandler):
         if u.path.startswith(f"{P}/merge_requests/") and u.path.endswith("/notes"):
             page = q.get("page", ["1"])[0]
             return self.send(NOTES[page], headers={"X-Next-Page": "2"} if page == "1" else {})
+        if u.path.startswith(f"{P}/pipelines/") and u.path.endswith("/jobs"):
+            return self.send(JOBS.get(int(u.path.split("/")[-2]), []))
         if u.path.startswith(f"{P}/merge_requests/") and u.path.endswith("/diffs"):
             n = int(u.path.split("/")[-2])
             return self.send([{"new_path": f, "old_path": f} for f in DIFFS.get(n, [])])

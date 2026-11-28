@@ -12,6 +12,8 @@
 # GitHub との違い
 #   - MR の説明を直しても、パイプラインは動き直さない。「対象要件:」を直したら、MR の Pipelines で「Run pipeline」を押す
 #   - レポートは MR のメモ（コメント）に書く。同じメモを更新し続ける
+#   - ドラフトを外しても、パイプラインは動き直さない。ドラフトの間は設計書の点検と（案）の確認（COMMON-011）が警告だけなので、
+#     外したら「Run pipeline」を押す。ドラフトのときに動いたパイプラインには draft-mr のジョブがあり、案内役がやり直しを促す
 
 workflow:
   rules:
@@ -31,6 +33,15 @@ variables:
     - if: $TAZUNA_DAILY_REPORT == "1"
       when: never
     - when: on_success
+
+# ドラフトの MR のパイプラインの印。ドラフトを外しても GitLab は動き直さないので、案内役がこの印を見て「Run pipeline」を促す
+draft-mr:
+  stage: verify
+  image: python:3.12
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_DRAFT == "true"
+  script:
+    - echo "ドラフトの MR として確かめた（設計書の点検と（案）の確認は警告だけ）。ドラフトを外したら Pipelines の「Run pipeline」で確かめ直す"
 
 harness:
   stage: verify

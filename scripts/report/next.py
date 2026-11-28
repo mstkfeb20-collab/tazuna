@@ -426,6 +426,14 @@ def gitlab_state(facts):
         if pipe in ("running", "pending", "created", "waiting_for_resource", "preparing"):
             todos.append(Todo(30, "—", f"MR !{n} の CI が動いている", title, "終わるのを待つ"))
             continue
+        hp = (one.get("head_pipeline") or {}).get("id")
+        jobs = gitlab.api(f"projects/:id/pipelines/{hp}/jobs?per_page=100", root=ROOT) if hp else None
+        if any(j.get("name") == "draft-mr" for j in jobs or []):
+            todos.append(Todo(3, "社員", f"MR !{n} は、ドラフトのときの CI のまま",
+                              "GitLab はドラフトを外してもパイプラインを動かし直しません。ドラフトの間は、設計書の点検と（案）の確認が警告だけなので、"
+                              "このままだと確かめないままマージできてしまいます",
+                              f"MR !{n} の「Pipelines」で「Run pipeline」を押し、通ってからレビューする"))
+            continue
         if pipe == "manual":
             todos.append(Todo(1, "社員", f"MR !{n} の CI に、手で動かすジョブがある",
                               "手で動かすジョブが終わるまで、パイプラインが完了しません",
