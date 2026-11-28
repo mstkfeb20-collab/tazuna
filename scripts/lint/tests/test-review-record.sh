@@ -37,6 +37,14 @@ echo "$out" | grep -q '点検の後に設計書が変わっています' && ok |
 TAZUNA_ROOT="$w" python3 "$PY" stamp >/dev/null
 check ok "点検し直して stamp すれば通す" $PR
 [ "$(grep -c '^# 点検した設計書の指紋' "$rec")" = 1 ] && ok || ng "stamp を繰り返しても指紋の行は1つ"
+# 業務承認が要の見出しに「（案）」が残っていたら止める
+printf -- '- [2] （案）大人人数は9人まで\n' >> "$w/docs/design/S-22-001_予約登録.md"
+TAZUNA_ROOT="$w" python3 "$PY" stamp >/dev/null
+check ng "業務承認が要の見出しに（案）が残っていれば止める" $PR
+echo "$out" | grep -q 'S-22-001/D-03002/2（相関チェック）（案）大人人数は9人まで' && ok || ng "（案）の行を示す: $out"
+check ok "ドラフトでは（案）が残っていても止めない" $PR TAZUNA_PR_DRAFT=1
+sed -i 's/^- \[2\] （案）/- [2] /' "$w/docs/design/S-22-001_予約登録.md"; TAZUNA_ROOT="$w" python3 "$PY" stamp >/dev/null
+check ok "（案）を外せば通す" $PR
 rm -rf "$w"
 
 echo "review-record: ${pass} 件成功 / ${fail} 件失敗"

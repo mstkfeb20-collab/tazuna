@@ -184,6 +184,13 @@ def review_todos(prs):
                         "点検で見つかった業務の決めごとと食い違いを、人のレビューの前に片付けます。ドラフトのままでは CI は警告だけなので、気づかずにレビューへ進みがちです",
                         "\n".join(how)))
 
+    props = review_record.pending_proposals(DESIGN) if catalog.design_files(DESIGN) else []
+    if props:  # 手元（今のブランチ）の設計書
+        shown = "、".join(lid for lid, _, _ in props[:5]) + ("…" if len(props) > 5 else "")
+        out.append(Todo(48, "社員", f"設計書の（案）{len(props)} 行を確かめる",
+                        f"AI が仮に置いた業務の判断で、人がまだ確かめていません: {shown}。"
+                        "（案）のままの行は決定として転記されず（未決になる）、レビューにも進めません（COMMON-011）",
+                        "業務として正しければ「（案）」を外す。違えば書き直す。決まっていなければ行を消して質問（issue）にする"))
     if prs is None:
         fp_, rows = review_record.read_record(os.path.join(ROOT, rec))
         if fp_ is not None and catalog.design_files(DESIGN) and fp_ != review_record.fingerprint(DESIGN):

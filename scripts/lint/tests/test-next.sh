@@ -136,5 +136,11 @@ grep -q '設計書の点検の' <<<"$(run --local)" && { fail=$((fail + 1)); ech
 f=$(ls "$w"/docs/design/S-*.md | head -1); echo "- [99] 足した行" >> "$f"
 check "点検の後に設計書が変われば、点検し直すよう案内する" "**設計書を点検し直す**（書き手）" "$(run --local)"
 
+# 設計書の（案）
+f=$(ls "$w"/docs/design/S-22-*.md | head -1)
+inst=$(basename "$f" | cut -c1-8)
+printf '\n## D-03002 相関チェック\n\n- [1] （案）大人は1人以上\n' >> "$f"
+check "業務承認が要の見出しの（案）を確かめるよう案内する" "**設計書の（案）1 行を確かめる**（社員）" "$(run --local)"
+
 echo "next: ${pass} 件成功 / ${fail} 件失敗"
 [ "$fail" -eq 0 ]

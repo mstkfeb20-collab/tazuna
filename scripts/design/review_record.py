@@ -8,6 +8,7 @@
   - 記録（docs/review/設計書の点検.tsv）が今の設計書に対するものである（指紋が一致する）
   - 止める種別（食い違い・未定義・場合分けの抜け・書式の解釈）の行は、直して点検し直すか、「扱い」に「残す: 理由」がある
   - 質問の行は、「扱い」に「issue: #番号」がある（業務の決定は issue で追う）
+  - 業務承認が要の見出しに「（案）」の行が残っていない（AI が仮に置いた業務の判断を、人が確かめて「（案）」を外してある）
 
 記録の形（TSV。1行目と2行目は stamp が書く）:
   # 点検した設計書の指紋: <指紋>
@@ -66,6 +67,19 @@ def parse(text):
     return fp_, rows
 
 
+def pending_proposals(design):
+    """業務承認が要の見出しに残っている「（案）」の行。[(行ID, 設計項目, 本文)]"""
+    cat = catalog.load(design)
+    out = []
+    for inst, name in sorted(catalog.design_files(design).items()):
+        _, lines, _ = catalog.parse_design(open(os.path.join(design, name), encoding="utf-8").read())
+        for _, num, text, under in lines:
+            it = cat.items.get(under) or {}
+            if num is not None and text.startswith("（案）") and it.get("業務承認") == "要":
+                out.append((catalog.line_id(inst, under, num), it.get("設計項目", ""), text[len("（案）"):].strip()))
+    return out
+
+
 def open_rows(rows):
     """人のレビューを始める前に片付ける行: 止める種別で「残す」がないもの、質問で issue がないもの（案内役も使う）"""
     return [r for r in rows
@@ -119,6 +133,10 @@ def check(root, design):
                          "記録は、点検したときの設計書に対するものです。直した後の設計書は点検されていません",
                          "スキル base-design-review で点検し直し、記録を書き直して stamp を実行してください"
                          "（前回の「扱い」は、同じ種別・根拠の行には引き継ぐ）"))
+    for lid, item, text in pending_proposals(design):
+        problems.append((f"{lid}（{item}）（案）{text}",
+                         "「（案）」は AI が仮に置いた業務の判断で、まだ人が確かめていません。業務承認が要る見出しは、人が決めます",
+                         "業務として正しければ「（案）」を外す。違えば書き直すか、決まっていなければ行を消して質問（issue）にする"))
     for r in open_rows(rows):
         kind = r["種別"]
         where = f"{r['根拠の行ID']}（{kind}）"

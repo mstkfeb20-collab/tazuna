@@ -21,6 +21,7 @@
   設計・Lint・実行検証・hooks・テスト（業務承認=不要）・人のための設計 → docs/tasks/<処理設計書 or 書類>.md（作業一覧）
   機械で守る項目で業務承認=要の根拠    → 機能別: 要件ファイルの「型・Lint で守る決まり」 / 共通: 候補ファイル
   機能別の書類で、必須の見出しが空のもの → 要件ファイルの「未決」（決まるまで実装しない。決めて書かないなら「該当なし（理由）」）
+  「（案）」で始まる行（AI が仮に置いた判断で、人がまだ確かめていない） → 決定としては運ばない。機能別の書類なら要件ファイルの「未決」に案として載せる
 """
 import argparse
 import hashlib
@@ -48,7 +49,7 @@ def read_lines(path, inst, cat):
     _, lines, _, attach, _ = catalog.scan_design(open(path, encoding="utf-8").read())
     out = []
     for n, num, text, under in lines:
-        if under not in cat.items or num is None or text.startswith("（廃止）"):
+        if under not in cat.items or num is None or text.startswith("（廃止）") or text.startswith(PROPOSAL):
             continue
         lid = catalog.line_id(inst, under, num)
         x = {k: cat.items[under][k] for k in KEYS}
@@ -61,6 +62,16 @@ def read_lines(path, inst, cat):
             text = text[:o.start()]
         out.append((lid, text, under, x, attach.get(n, "")))
     return out
+
+
+PROPOSAL = "（案）"
+
+
+def proposals(path, inst, cat):
+    """「（案）」の行（AI が仮に置き、人がまだ確かめていない判断）。[(行ID, 設計項目, 本文)]。人が確かめたら「（案）」を外す"""
+    _, lines, _ = catalog.parse_design(open(path, encoding="utf-8").read())
+    return [(catalog.line_id(inst, under, num), cat.items.get(under, {}).get("設計項目", ""), text[len(PROPOSAL):].strip())
+            for _, num, text, under in lines if num is not None and under in cat.items and text.startswith(PROPOSAL)]
 
 
 def undecided(path, doc, cat):
@@ -91,6 +102,7 @@ def plan(folder):
         func = cat.function_of(inst)
         common = cat.layer(doc) == "共通"
         missing = undecided(os.path.join(folder, name), doc, cat) if func and not common else []
+        props = proposals(os.path.join(folder, name), inst, cat) if func and not common else []
         title = name[len(inst) + 1:-3]
         docname = cat.docs[doc]["書類名"]
         label = f"{inst} {docname}：{title}"
@@ -103,7 +115,8 @@ def plan(folder):
         # 図を付けていない行は以前と同じ形で指紋を取る（ツールを更新しただけで「要転記」にならないように）
         keyed = [ln if ln[4] else ln[:4] for ln in lines]
         # 未決がないときは以前と同じ形で指紋を取る
-        srcs[inst] = hashlib.sha1(repr((keyed, func, common) + ((tuple(missing),) if missing else ())).encode()).hexdigest()[:12]
+        srcs[inst] = hashlib.sha1(repr((keyed, func, common) + ((tuple(missing),) if missing else ())
+                                       + ((tuple(props),) if props else ())).encode()).hexdigest()[:12]
 
         req, spec, cond, basis, cand, know, tasks = [], [], [], [], [], [], {}
         for lid, text, iid, x, att in lines:
@@ -125,7 +138,7 @@ def plan(folder):
             if sub == "根拠" and main != "テスト":
                 (cand if common else basis).append(entry)
 
-        if not common and (req or cond or basis or spec or missing):
+        if not common and (req or cond or basis or spec or missing or props):
             body = []
             center = cat.role(doc) == "機能の中心"
             if center or req:
@@ -146,6 +159,11 @@ def plan(folder):
                          "設計書の必須の見出しが空で、まだ決まっていない。推測で実装・テストしない。"
                          "PR の本文に「未対応: 行ID（未決）」と書く。決まったら設計書に書いて転記し直す。", ""]
                 body += [f"- 未決: {cat.items.get(i, {}).get('設計項目', '')}（{inst}/{i}）" for i in missing]
+            if props:
+                body += ["", f"### 未決（{inst} {docname}・案のまま）", "",
+                         "設計書に「（案）」のまま残っている行。AI が仮に置いた判断で、人がまだ確かめていない。推測で実装・テストしない。"
+                         "PR の本文に「未対応: 行ID（未決）」と書く。人が確かめて「（案）」を外したら、転記し直す。", ""]
+                body += [f"- 未決（案）: {item}（{lid}）: {text}" for lid, item, text in props]
             put(f"docs/requirements/{home}.md", inst, body,
                 [f"# {home_title}", "", f"> ID 設計の処理設計書 {home.split('_')[0]} と、書類一覧でこの機能に属する書類から転記した要件。"
                  "設計書を直して転記し直す。目印の中は手で直さない。", ""])
