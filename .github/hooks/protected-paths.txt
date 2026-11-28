@@ -17,6 +17,8 @@ harness/tazuna-paths.txt
 harness/tazuna-version
 harness/GUIDE.md
 harness/design-and-transcription.md
+harness/quality.md
+harness/how-to-develop.md
 docs/design/ID設計.xlsx
 docs/design/ID設計.md
 scripts/lint/tests/*
