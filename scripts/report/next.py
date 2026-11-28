@@ -96,7 +96,9 @@ def setup_state():
 # ---- PR・MR の質問（人の答えはコメントで受ける。本文は Copilot が書き換えるので人は編集しない） ----
 
 QSEC_RE = re.compile(r"##[^\n]*判断してほしい[^\n]*\n(.*?)(?=\n## |\Z)", re.S)
-ANSWER_RE = re.compile(r"^[ \t>]*(回答|保留)[:：][ \t]*([0-9０-９][0-9０-９,，、 \t]*)", re.M)
+# 行頭の「@copilot」は許す（Copilot の PR では、メンションしないと Copilot が動かない）。番号は「,」「、」区切り。
+# 番号の後ろの答えの本文（「回答: 2 21日前は0%」の 21）は番号に含めない
+ANSWER_RE = re.compile(r"^[ \t>]*(?:@copilot[ \t]+)?(回答|保留)[:：][ \t]*([0-9０-９]+(?:[ \t]*[,，、][ \t]*[0-9０-９]+)*)", re.M)
 
 
 def open_questions(body, comments):

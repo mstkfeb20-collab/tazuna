@@ -84,6 +84,11 @@ print(n.open_questions(b, ["回答: 1, 3"]))
 print(n.open_questions(b, ["回答：１", "> 保留: 2", "回答: 3"]))')
 check "コメントで答えていない質問が残る" "[(2, '返金の日付')]" "$out"
 check "全角の番号・保留も答えとして扱う" "[]" "$out"
+out=$(cd "$ROOT/scripts/report" && python3 -c '
+import next as n
+b = "## レビュアーに判断してほしいこと\n- （案）取消料は税込\n- （案）料率\n- 端数\n- 日付\n"
+print(n.open_questions(b, ["@copilot 回答: 1 それでよい", "回答: 2 21日前は0%"]))')
+check "@copilot を付けた回答も答えとして扱い、答えの本文の数字（21）は番号にしない" "[(3, '端数'), (4, '日付')]" "$out"
 
 # 不具合の issue: 原因区分で行き先を変える
 out=$(cd "$ROOT/scripts/report" && python3 -c '

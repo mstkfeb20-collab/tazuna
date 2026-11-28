@@ -14,7 +14,7 @@
 ## コマンド
 - Lint: `scripts/lint/run-all.sh`
 - ビルドとテスト: `mvn -B verify`
-- ID 設計（人が実行する）: `python3 scripts/design/id_design.py list|scaffold|progress|export`、転記 `python3 scripts/design/transcribe.py`
+- ID 設計（人か設計エージェントが実行する）: `python3 scripts/design/id_design.py list|scaffold|progress|export`。転記（人が実行する）: `python3 scripts/design/transcribe.py`
 
 ## 参照先
 | 知りたいこと | 場所 |
