@@ -24,11 +24,12 @@
 | テストの作り方 | `.github/skills/base-test-design/` |
 | 既存の設計書から業務ルールを抽出 | `.github/skills/base-spec-extraction/` |
 | ID 設計書の置き場所と属性の例外を確認 | `.github/skills/base-design-check/` |
-| ID 設計書のレビュー（食い違い・未定義・抜け） | `.github/skills/base-design-review/`（`python3 scripts/design/review_pack.py`） |
+| 設計書のドラフトを書く・人と詰める（設計の相棒） | `.github/agents/design-partner.agent.md`。点検は別のエージェント `.github/agents/design-check.agent.md`（スキル `base-design-review`） |
+| 上流の入力（要求・外部設計・業務の説明） | `docs/upstream/`（読むだけ） |
 | 業務ルール・用語・機能一覧 | `docs/domain/` |
 | レイヤーと依存方向 | `docs/architecture.md` |
 | 命名・作法 | `docs/conventions.md` |
 | テーブル・列の意味と制約 | `db/schema/*.sql`（DDL が正。区分値の意味は列の説明が指す設計書の行） |
 
 ## 編集できないファイル
-`docs/requirements/`、`docs/domain/invariants.md`、`base-*` スキル、共通Lint、hooks、CI は hooks で保護されている。変更が必要なときはPRの説明に変更案を書く。
+`docs/requirements/`、`docs/domain/invariants.md`、`docs/upstream/`、`base-*` スキル、`.github/agents/`、共通Lint、hooks、CI は hooks で保護されている。変更が必要なときはPRの説明に変更案を書く。

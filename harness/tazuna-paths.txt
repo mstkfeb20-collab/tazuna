@@ -9,6 +9,8 @@
 # 型が変わったときは、取り込みスクリプトが新しい Excel と型の差分を .tazuna-download/ に取り出す。案件の Excel に手で反映する。
 
 .github/skills/base-*
+.github/agents/design-partner.agent.md
+.github/agents/design-check.agent.md
 .github/hooks/tazuna-guard.json
 .github/hooks/scripts/*
 .github/hooks/tests/*

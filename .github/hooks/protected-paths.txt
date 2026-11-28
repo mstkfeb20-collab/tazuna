@@ -3,6 +3,7 @@
 #
 # --- 型（標準化チームが管理）---
 .github/skills/base-*
+.github/agents/*
 .github/hooks/*
 .github/workflows/*
 .github/CODEOWNERS
@@ -25,5 +26,6 @@ scripts/report/*
 # --- 業務の正本（社員が管理）---
 docs/requirements/*
 docs/domain/invariants.md
+docs/upstream/*
 #
 # --- 案件で追加するもの ---

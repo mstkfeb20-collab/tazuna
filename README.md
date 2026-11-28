@@ -57,6 +57,9 @@ repo-root/
 │  │  ├─ base-spec-extraction/   # 既存の設計書から守りたいものを抽出（型）
 │  │  ├─ base-design-check/      # ID 設計書の置き場所と属性の例外を確認（型）
 │  │  └─ proj-example-reservation/ # proj スキルの見本
+│  ├─ agents/
+│  │  ├─ design-partner.agent.md # 設計の相棒：ドラフトを一気に書き、人と詰める（型）
+│  │  └─ design-check.agent.md   # 点検役：別の目で設計書を点検して記録する（型）
 │  ├─ hooks/
 │  │  ├─ tazuna-guard.json       # Copilot の hooks 設定
 │  │  ├─ deny-commands.txt       # 禁止コマンド
@@ -65,6 +68,7 @@ repo-root/
 │  │  └─ tests/                  # hooks の自己テスト
 │  └─ workflows/verify.yml       # CI（Lint・hooksテスト・mvn verify）
 ├─ docs/
+│  ├─ upstream/                  # 上流の入力（要求・外部設計・業務の説明）。設計エージェントが読む
 │  ├─ design/                    # ID 設計
 │  │  ├─ ID設計.xlsx             # 原本。機能一覧（人が書く）ともとになる設計書の行 → 書類一覧・進め方のシート（自動）、型（書類の種類・記載項目・設計項目）
 │  │  ├─ ID設計.md               # Excel の書き出し（PR で差分を読む・ツールが読む）
